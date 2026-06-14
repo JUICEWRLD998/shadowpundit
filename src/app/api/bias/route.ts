@@ -1,0 +1,53 @@
+/**
+ * /api/bias — the silent bias layer's control surface.
+ *
+ *   GET  → { notes, configured }
+ *          The condensed bias notes recalled from memory (for a future profile
+ *          view). Never exposed to the chat user directly.
+ *
+ *   POST → { detected: BiasProfile[], stored: number, analysed: number }
+ *          Re-run detection over the user's current prediction history and
+ *          persist any confident findings. Safe to call after each prediction.
+ *
+ * Bias analysis only runs once enough predictions exist; below that threshold
+ * POST returns an empty result with a reason rather than calling the model.
+ */
+
+import { isMemWalConfigured } from "@/lib/memwal";
+import { recallPredictions } from "@/lib/predictions";
+import { summarizePredictionsForPrompt } from "@/lib/predictionMemory";
+import {
+  detectBiases,
+  recallBiasNotes,
+  storeBiasProfiles,
+  MIN_PREDICTIONS_FOR_BIAS,
+} from "@/lib/biasDetector";
+
+export const maxDuration = 30;
+
+export async function GET() {
+  const notes = await recallBiasNotes();
+  return Response.json({ notes, configured: isMemWalConfigured() });
+}
+
+export async function POST() {
+  const predictions = await recallPredictions(undefined, 30);
+
+  if (predictions.length < MIN_PREDICTIONS_FOR_BIAS) {
+    return Response.json({
+      detected: [],
+      stored: 0,
+      analysed: predictions.length,
+      reason: `Need at least ${MIN_PREDICTIONS_FOR_BIAS} predictions before analysing.`,
+    });
+  }
+
+  const history = summarizePredictionsForPrompt(
+    predictions.map((p) => p.raw),
+    30,
+  );
+  const detected = await detectBiases(history);
+  const stored = await storeBiasProfiles(detected);
+
+  return Response.json({ detected, stored, analysed: predictions.length });
+}

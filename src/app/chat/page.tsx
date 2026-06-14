@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { ChatWindow } from "@/components/chat/ChatWindow";
+import { Sidebar } from "@/components/layout/Sidebar";
+import styles from "./chat.module.css";
 
 export const metadata: Metadata = {
   title: "Chat",
@@ -10,7 +12,12 @@ export const metadata: Metadata = {
 export default function ChatPage() {
   return (
     <main className="app-surface">
-      <ChatWindow />
+      <div className={styles.layout}>
+        <div className={styles.conversation}>
+          <ChatWindow />
+        </div>
+        <Sidebar />
+      </div>
     </main>
   );
 }
