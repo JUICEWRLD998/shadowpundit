@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit, JetBrains_Mono } from "next/font/google";
 import { Navbar } from "@/components/layout/Navbar";
@@ -70,6 +71,30 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   colorScheme: "dark",
+=======
+import type { Metadata } from "next";
+import { Inter, Outfit, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
+
+export const metadata: Metadata = {
+  title: "Shadow Pundit — The AI That Spawns Your Evil Twin",
+  description: "An AI agent that tracks your World Cup predictions and reacts, then spawns an adversarial AI twin reverse-engineered from your biases.",
+>>>>>>> 868bad55ca2bbcd9880aedc3bc716ff12e5db2f6
 };
 
 export default function RootLayout({
@@ -78,6 +103,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+<<<<<<< HEAD
     <html
       lang="en"
       className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
@@ -87,6 +113,10 @@ export default function RootLayout({
         <Navbar />
         <div className="app-shell">{children}</div>
       </body>
+=======
+    <html lang="en" className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable}`}>
+      <body>{children}</body>
+>>>>>>> 868bad55ca2bbcd9880aedc3bc716ff12e5db2f6
     </html>
   );
 }
