@@ -203,6 +203,36 @@
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-md);
 }
+/* The flame breathes everywhere; the badge floats only on the desktop
+   (horizontal) layout, where its transform isn't used for the 90° rotation. */
+.duelVs svg {
+  animation: flameFlicker 2.4s var(--ease-in-out) infinite;
+}
+@keyframes flameFlicker {
+  0%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px oklch(0.82 0.15 85 / 0.55));
+  }
+  50% {
+    opacity: 0.82;
+    filter: drop-shadow(0 0 9px oklch(0.82 0.15 85 / 0.9));
+  }
+}
+@media (min-width: 861px) {
+  .duelVs {
+    animation: vsFloat 4s var(--ease-in-out) infinite;
+  }
+  @keyframes vsFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+}
 
 /* ───── EMERGENCE TEASER ───── */
 
@@ -262,7 +292,6 @@
     border-color var(--t-base);
 }
 .card:hover {
-  transform: translateY(-4px);
   border-color: var(--border-strong);
 }
 .cardIcon {

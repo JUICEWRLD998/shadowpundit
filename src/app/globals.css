@@ -359,6 +359,18 @@ samp {
   color: transparent;
 }
 
+/* Animated sheen across gradient text. Combine with .u-gradient-text.
+   Reduced motion is handled by the global animation kill-switch above. */
+.u-shimmer {
+  background-size: 220% auto;
+  animation: uShimmer 7s linear infinite;
+}
+@keyframes uShimmer {
+  to {
+    background-position: 220% center;
+  }
+}
+
 /* ----------------------------------------------------------------------------
    5. SURFACE PATTERNS (reusable visual building blocks)
    -------------------------------------------------------------------------- */

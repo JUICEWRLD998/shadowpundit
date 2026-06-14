@@ -83,7 +83,7 @@ export default function RootLayout({
       className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
-      <body>
+      <body suppressHydrationWarning>
         <Navbar />
         <div className="app-shell">{children}</div>
       </body>
