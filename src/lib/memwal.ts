@@ -12,6 +12,25 @@
 import { MemWal } from "@mysten-incubation/memwal";
 import type { MemoryNamespace } from "@/types";
 
+/**
+ * A namespace as actually sent to the relayer. Either a bare base namespace
+ * (shared/global data, e.g. the leaderboard) or a per-user scoped one produced
+ * by `scopeNs` (e.g. "predictions::0xabc…"). Kept as a widened string so call
+ * sites can pass runtime-built scoped names while still starting from the typed
+ * `MemoryNamespace` union.
+ */
+export type ScopedNamespace = MemoryNamespace | (string & {});
+
+/**
+ * Scope a base namespace to a single user so one wallet's memory never bleeds
+ * into another's. `userId` is a verified Sui wallet address (see lib/auth). When
+ * no user is given (server-side maintenance, unconfigured local dev) the base
+ * namespace is returned unchanged.
+ */
+export function scopeNs(base: MemoryNamespace, userId?: string | null): ScopedNamespace {
+  return userId ? `${base}::${userId.toLowerCase()}` : base;
+}
+
 let memwalInstance: MemWal | null = null;
 
 /** True when MemWal credentials are present in the environment. */
@@ -53,7 +72,7 @@ export function getMemWal(): MemWal {
  */
 export async function rememberWithRetry(
   text: string,
-  namespace: MemoryNamespace,
+  namespace: ScopedNamespace,
   maxRetries = 3,
 ): Promise<boolean> {
   const memwal = getMemWal();
@@ -84,7 +103,7 @@ export async function rememberWithRetry(
  */
 export async function rememberAsync(
   text: string,
-  namespace: MemoryNamespace,
+  namespace: ScopedNamespace,
 ): Promise<boolean> {
   try {
     await getMemWal().remember(text, namespace);
@@ -103,7 +122,7 @@ export async function rememberAsync(
  */
 export async function recallMemories(
   query: string,
-  namespace?: MemoryNamespace,
+  namespace?: ScopedNamespace,
   limit = 10,
 ): Promise<string[]> {
   if (!isMemWalConfigured()) return [];

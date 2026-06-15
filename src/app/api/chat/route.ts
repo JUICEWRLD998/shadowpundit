@@ -37,14 +37,13 @@ import {
   storeBiasProfiles,
   MIN_PREDICTIONS_FOR_BIAS,
 } from "@/lib/biasDetector";
+import { requireSession } from "@/lib/auth/session";
 
 // Allow long-running streams on Vercel (Hobby caps at 10s without this).
 export const maxDuration = 30;
 
 interface ChatRequestBody {
   messages: UIMessage[];
-  /** Anonymous client id — reserved for per-user memory scoping. */
-  userId?: string;
 }
 
 /** Flatten a UIMessage's text parts into a plain string. */
@@ -66,6 +65,10 @@ function buildTranscript(messages: UIMessage[], assistantReply: string): string 
 }
 
 export async function POST(req: Request) {
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+  const userId = auth;
+
   if (!isGeminiConfigured()) {
     return Response.json(
       { error: "The AI model isn't configured. Set GOOGLE_GENERATIVE_AI_API_KEY." },
@@ -92,8 +95,8 @@ export async function POST(req: Request) {
   // All three are best-effort and run concurrently; any failure yields a safe
   // empty value so the companion still responds.
   const [predictions, biasNotes, allMatches] = await Promise.all([
-    recallPredictions().catch(() => []),
-    recallBiasNotes().catch(() => ""),
+    recallPredictions(undefined, 20, userId).catch(() => []),
+    recallBiasNotes(10, userId).catch(() => ""),
     getMatches().catch(() => []),
   ]);
 
@@ -119,7 +122,7 @@ export async function POST(req: Request) {
     // ── Memory write-back, after the reply finishes ───────────────────────
     onFinish: async ({ text }) => {
       try {
-        await captureMemory(messages, text, predictions.length);
+        await captureMemory(messages, text, predictions.length, userId);
       } catch (error) {
         console.error("[/api/chat] memory write-back failed:", error);
       }
@@ -144,24 +147,25 @@ async function captureMemory(
   messages: UIMessage[],
   assistantReply: string,
   priorCount: number,
+  userId: string,
 ): Promise<void> {
   const transcript = buildTranscript(messages, assistantReply);
   const parsed = await extractPrediction(transcript);
   if (!parsed) return;
 
   const prediction = buildPrediction(parsed);
-  await storePrediction(prediction);
+  await storePrediction(prediction, userId);
 
   // Refresh bias analysis only when a new pick pushes us past the threshold —
   // avoids re-running the analyst on every idle message.
   const total = priorCount + 1;
   if (total >= MIN_PREDICTIONS_FOR_BIAS) {
-    const history = await recallPredictions(undefined, 30);
+    const history = await recallPredictions(undefined, 30, userId);
     const block = summarizePredictionsForPrompt(
       history.map((p) => p.raw),
       30,
     );
     const biases = await detectBiases(block);
-    await storeBiasProfiles(biases);
+    await storeBiasProfiles(biases, userId);
   }
 }

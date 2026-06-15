@@ -174,6 +174,7 @@ export interface LeaderboardEntry {
   roastCount: number;
   topBias: BiasType;
   defianceRate: number; // % times user defied shadow and was RIGHT
+  isYou?: boolean; // marks the real signed-in user's row
 }
 
 // ==================== CHAT ====================
@@ -214,4 +215,13 @@ export type MemoryNamespace =
   | "bias-profile"
   | "shadow-state"
   | "conversations"
-  | "results";
+  | "results"
+  | "leaderboard";
+
+// ==================== AUTH ====================
+
+/** The verified identity behind a request — a Sui wallet address. */
+export interface SessionUser {
+  /** Lower-cased Sui wallet address; doubles as the memory-scoping key. */
+  address: string;
+}

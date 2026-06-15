@@ -18,7 +18,7 @@ import {
   parsePredictionMemory,
   type RecalledPrediction,
 } from "./predictionMemory";
-import { recallMemories, rememberAsync, isMemWalConfigured } from "./memwal";
+import { recallMemories, rememberAsync, isMemWalConfigured, scopeNs } from "./memwal";
 
 /** Promote a loosely-extracted prediction into a full, persistable record. */
 export function buildPrediction(
@@ -46,20 +46,28 @@ export function buildPrediction(
  * embedding/encrypting in the background). Returns false when memory isn't
  * configured or the relayer rejects the job, so callers can react if needed.
  */
-export async function storePrediction(prediction: Prediction): Promise<boolean> {
+export async function storePrediction(
+  prediction: Prediction,
+  userId?: string | null,
+): Promise<boolean> {
   if (!isMemWalConfigured()) return false;
-  return rememberAsync(formatPredictionMemory(prediction), "predictions");
+  return rememberAsync(
+    formatPredictionMemory(prediction),
+    scopeNs("predictions", userId),
+  );
 }
 
 /**
  * Recall stored predictions as structured views, newest first. `query` steers
  * the semantic search; the default pulls broadly across the user's history.
+ * `userId` scopes recall to a single wallet's memory.
  */
 export async function recallPredictions(
   query = "all of the user's match predictions and reasoning",
   limit = 20,
+  userId?: string | null,
 ): Promise<RecalledPrediction[]> {
-  const memories = await recallMemories(query, "predictions", limit);
+  const memories = await recallMemories(query, scopeNs("predictions", userId), limit);
   return memories
     .filter((m) => /^PREDICTION \[/im.test(m))
     .map(parsePredictionMemory)

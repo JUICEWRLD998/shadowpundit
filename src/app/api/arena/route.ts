@@ -15,14 +15,18 @@ import { recallPredictions } from "@/lib/predictions";
 import { getMatches, getCompletedMatches } from "@/lib/worldcup";
 import { resolveAll, summarize } from "@/lib/scoring";
 import { getShadowSnapshot } from "@/lib/shadowEngine";
+import { requireSession } from "@/lib/auth/session";
 
 export const maxDuration = 30;
 
 export async function GET() {
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
   const [predictions, matches, shadow] = await Promise.all([
-    recallPredictions(undefined, 50).catch(() => []),
+    recallPredictions(undefined, 50, auth).catch(() => []),
     getMatches().catch(() => []),
-    getShadowSnapshot().catch(() => null),
+    getShadowSnapshot(auth).catch(() => null),
   ]);
 
   const completed = getCompletedMatches(matches, 200);

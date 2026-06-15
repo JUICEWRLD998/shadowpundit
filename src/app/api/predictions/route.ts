@@ -21,17 +21,21 @@ import {
   recallPredictions,
   storePrediction,
 } from "@/lib/predictions";
+import { requireSession } from "@/lib/auth/session";
 
 export const maxDuration = 30;
 
 export async function GET(req: Request) {
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
   const { searchParams } = new URL(req.url);
   const query =
     searchParams.get("query") ??
     "all of the user's match predictions and reasoning";
   const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 20, 1), 50);
 
-  const predictions = await recallPredictions(query, limit);
+  const predictions = await recallPredictions(query, limit, auth);
   return Response.json({
     predictions,
     count: predictions.length,
@@ -63,6 +67,9 @@ const postSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
   let body: unknown;
   try {
     body = await req.json();
@@ -91,6 +98,6 @@ export async function POST(req: Request) {
     { matchId: parsed.data.matchId },
   );
 
-  const stored = await storePrediction(prediction);
+  const stored = await storePrediction(prediction, auth);
   return Response.json({ stored, prediction }, { status: stored ? 201 : 200 });
 }

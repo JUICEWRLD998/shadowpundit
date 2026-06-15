@@ -84,7 +84,7 @@
   box-shadow: 0 0 8px oklch(0.66 0.2 295 / 0.5);
 }
 
-/* ---- Right cluster (live pill + mobile button) ---------------------------- */
+/* ---- Right cluster (wallet control + mobile button) ----------------------- */
 
 .right {
   flex: 1 1 0;
@@ -93,47 +93,6 @@
   justify-content: flex-end;
   gap: var(--sp-3);
   min-width: 0;
-}
-
-/* Live tournament pill — signals the World Cup is underway. */
-.live {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-1) var(--sp-3);
-  border-radius: var(--r-full);
-  border: 1px solid var(--border-strong);
-  background: var(--surface-2);
-  white-space: nowrap;
-}
-.liveDot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--r-full);
-  background: var(--negative);
-  box-shadow: 0 0 0 0 oklch(0.64 0.21 25 / 0.6);
-  animation: liveDot 1.8s var(--ease-in-out) infinite;
-}
-@keyframes liveDot {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 oklch(0.64 0.21 25 / 0.55);
-  }
-  50% {
-    box-shadow: 0 0 0 5px oklch(0.64 0.21 25 / 0);
-  }
-}
-.liveText {
-  font-size: var(--step--1);
-  font-weight: 500;
-  color: var(--text-muted);
-}
-.liveTag {
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--negative);
 }
 
 /* ---- Mobile --------------------------------------------------------------- */
@@ -182,14 +141,5 @@
   }
   .menuBtn {
     display: inline-flex;
-  }
-}
-
-@media (max-width: 560px) {
-  .liveText {
-    display: none;
-  }
-  .live {
-    padding: var(--sp-1) var(--sp-2);
   }
 }

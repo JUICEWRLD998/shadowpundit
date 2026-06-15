@@ -27,6 +27,7 @@ import {
   recallMemories,
   rememberAsync,
   isMemWalConfigured,
+  scopeNs,
 } from "./memwal";
 import { recallPredictions } from "./predictions";
 import { summarizePredictionsForPrompt } from "./predictionMemory";
@@ -68,12 +69,12 @@ function distinctBiasTypes(memories: string[]): number {
 }
 
 /** Read current memory and decide whether the Shadow is ready to spawn. */
-export async function checkEligibility(): Promise<Eligibility> {
+export async function checkEligibility(userId?: string | null): Promise<Eligibility> {
   const [predictions, biasMemories] = await Promise.all([
-    recallPredictions(undefined, 30).catch(() => []),
+    recallPredictions(undefined, 30, userId).catch(() => []),
     recallMemories(
       "the user's detected cognitive biases",
-      "bias-profile",
+      scopeNs("bias-profile", userId),
       20,
     ).catch(() => [] as string[]),
   ]);
@@ -161,10 +162,12 @@ function parseShadowMemory(raw: string): ShadowSnapshot | null {
 }
 
 /** Recall the live Shadow, newest record wins. Null if it hasn't spawned yet. */
-export async function getShadowSnapshot(): Promise<ShadowSnapshot | null> {
+export async function getShadowSnapshot(
+  userId?: string | null,
+): Promise<ShadowSnapshot | null> {
   const memories = await recallMemories(
     "the shadow's state, personality and emergence",
-    "shadow-state",
+    scopeNs("shadow-state", userId),
     8,
   ).catch(() => [] as string[]);
 
@@ -217,10 +220,12 @@ async function generatePersonality(
  * Spawn the Shadow: generate its personality from memory and persist it. Returns
  * the new snapshot, or null if generation failed (caller can retry later).
  */
-export async function emergeShadow(): Promise<ShadowSnapshot | null> {
+export async function emergeShadow(
+  userId?: string | null,
+): Promise<ShadowSnapshot | null> {
   const [predictions, biasNotes] = await Promise.all([
-    recallPredictions(undefined, 30).catch(() => []),
-    recallBiasNotes().catch(() => ""),
+    recallPredictions(undefined, 30, userId).catch(() => []),
+    recallBiasNotes(10, userId).catch(() => ""),
   ]);
 
   const history = summarizePredictionsForPrompt(
@@ -246,7 +251,7 @@ export async function emergeShadow(): Promise<ShadowSnapshot | null> {
   // Fire-and-forget; the Shadow is "born" the moment we return it to the client,
   // and the relayer finishes persisting in the background.
   if (isMemWalConfigured()) {
-    await rememberAsync(formatShadowMemory(snap), "shadow-state");
+    await rememberAsync(formatShadowMemory(snap), scopeNs("shadow-state", userId));
   }
 
   return snap;
@@ -272,11 +277,12 @@ function describePersonality(p: ShadowPersonality): string {
 export async function generateShadowReply(
   messages: UIMessage[],
   snapshot: ShadowSnapshot,
+  userId?: string | null,
 ): Promise<string> {
   try {
     const [predictions, biasNotes] = await Promise.all([
-      recallPredictions(undefined, 20).catch(() => []),
-      recallBiasNotes().catch(() => ""),
+      recallPredictions(undefined, 20, userId).catch(() => []),
+      recallBiasNotes(10, userId).catch(() => ""),
     ]);
 
     const userHistory = summarizePredictionsForPrompt(

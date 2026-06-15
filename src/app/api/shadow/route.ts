@@ -25,6 +25,7 @@ import {
   generateShadowReply,
   type ShadowSnapshot,
 } from "@/lib/shadowEngine";
+import { requireSession } from "@/lib/auth/session";
 
 export const maxDuration = 30;
 
@@ -41,12 +42,15 @@ function publicShadow(snap: ShadowSnapshot) {
 }
 
 export async function GET() {
-  const existing = await getShadowSnapshot();
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
+  const existing = await getShadowSnapshot(auth);
   if (existing) {
     return Response.json({ active: true, shadow: publicShadow(existing) });
   }
 
-  const eligibility = await checkEligibility();
+  const eligibility = await checkEligibility(auth);
   return Response.json({ active: false, eligibility });
 }
 
@@ -56,6 +60,9 @@ interface ShadowPostBody {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
   let body: ShadowPostBody;
   try {
     body = (await req.json()) as ShadowPostBody;
@@ -73,17 +80,17 @@ export async function POST(req: Request) {
   // ── Spawn ────────────────────────────────────────────────────────────────
   if (body.action === "emerge") {
     // Don't double-spawn — return the existing Shadow if it's already awake.
-    const existing = await getShadowSnapshot();
+    const existing = await getShadowSnapshot(auth);
     if (existing) {
       return Response.json({ emerged: false, shadow: publicShadow(existing) });
     }
 
-    const eligibility = await checkEligibility();
+    const eligibility = await checkEligibility(auth);
     if (!eligibility.eligible) {
       return Response.json({ emerged: false, eligibility });
     }
 
-    const snap = await emergeShadow();
+    const snap = await emergeShadow(auth);
     if (!snap) {
       return Response.json(
         { emerged: false, error: "Emergence failed." },
@@ -102,10 +109,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const snap = await getShadowSnapshot();
+    const snap = await getShadowSnapshot(auth);
     if (!snap) return Response.json({ text: "" }); // not awake → silent
 
-    const text = await generateShadowReply(body.messages, snap);
+    const text = await generateShadowReply(body.messages, snap, auth);
     return Response.json({ text });
   }
 

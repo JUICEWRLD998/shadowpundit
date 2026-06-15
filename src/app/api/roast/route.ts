@@ -16,18 +16,22 @@ import { getMatches, getCompletedMatches } from "@/lib/worldcup";
 import { resolveAll } from "@/lib/scoring";
 import { generateRoast, pickMostPainful } from "@/lib/roastEngine";
 import { recallBiasProfiles } from "@/lib/biasDetector";
+import { requireSession } from "@/lib/auth/session";
 
 export const maxDuration = 30;
 
 export async function POST() {
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
   if (!isMemWalConfigured()) {
     return Response.json({ roast: null, reason: "Memory not configured." });
   }
 
   const [predictions, matches, biases] = await Promise.all([
-    recallPredictions(undefined, 50).catch(() => []),
+    recallPredictions(undefined, 50, auth).catch(() => []),
     getMatches().catch(() => []),
-    recallBiasProfiles().catch(() => []),
+    recallBiasProfiles(12, auth).catch(() => []),
   ]);
 
   const resolved = resolveAll(predictions, getCompletedMatches(matches, 200));

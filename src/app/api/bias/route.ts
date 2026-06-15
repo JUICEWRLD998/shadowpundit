@@ -23,19 +23,26 @@ import {
   storeBiasProfiles,
   MIN_PREDICTIONS_FOR_BIAS,
 } from "@/lib/biasDetector";
+import { requireSession } from "@/lib/auth/session";
 
 export const maxDuration = 30;
 
 export async function GET() {
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
   const [notes, profiles] = await Promise.all([
-    recallBiasNotes(),
-    recallBiasProfiles(),
+    recallBiasNotes(10, auth),
+    recallBiasProfiles(12, auth),
   ]);
   return Response.json({ notes, profiles, configured: isMemWalConfigured() });
 }
 
 export async function POST() {
-  const predictions = await recallPredictions(undefined, 30);
+  const auth = await requireSession();
+  if (auth instanceof Response) return auth;
+
+  const predictions = await recallPredictions(undefined, 30, auth);
 
   if (predictions.length < MIN_PREDICTIONS_FOR_BIAS) {
     return Response.json({
@@ -51,7 +58,7 @@ export async function POST() {
     30,
   );
   const detected = await detectBiases(history);
-  const stored = await storeBiasProfiles(detected);
+  const stored = await storeBiasProfiles(detected, auth);
 
   return Response.json({ detected, stored, analysed: predictions.length });
 }

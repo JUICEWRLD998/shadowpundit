@@ -19,6 +19,7 @@ import {
   recallMemories,
   rememberAsync,
   isMemWalConfigured,
+  scopeNs,
 } from "./memwal";
 import { buildBiasAnalysisPrompt } from "@/prompts/biasAnalysis";
 import type {
@@ -166,10 +167,12 @@ function formatBiasMemory(b: BiasProfile): string {
 /** Persist detected biases to Walrus (fire-and-forget). Returns count stored. */
 export async function storeBiasProfiles(
   profiles: BiasProfile[],
+  userId?: string | null,
 ): Promise<number> {
   if (!isMemWalConfigured() || profiles.length === 0) return 0;
+  const ns = scopeNs("bias-profile", userId);
   const results = await Promise.all(
-    profiles.map((p) => rememberAsync(formatBiasMemory(p), "bias-profile")),
+    profiles.map((p) => rememberAsync(formatBiasMemory(p), ns)),
   );
   return results.filter(Boolean).length;
 }
@@ -181,10 +184,13 @@ export async function storeBiasProfiles(
  * Returns "" when nothing's been detected yet, so the prompt can show its own
  * "too early" fallback.
  */
-export async function recallBiasNotes(limit = 10): Promise<string> {
+export async function recallBiasNotes(
+  limit = 10,
+  userId?: string | null,
+): Promise<string> {
   const memories = await recallMemories(
     "the user's detected cognitive biases and tendencies",
-    "bias-profile",
+    scopeNs("bias-profile", userId),
     limit,
   );
 
@@ -245,10 +251,13 @@ function parseBiasMemory(raw: string): BiasProfile | null {
  * De-duplicates by type, keeping the highest-severity instance of each, sorted
  * most-severe first. Returns [] when nothing's stored.
  */
-export async function recallBiasProfiles(limit = 12): Promise<BiasProfile[]> {
+export async function recallBiasProfiles(
+  limit = 12,
+  userId?: string | null,
+): Promise<BiasProfile[]> {
   const memories = await recallMemories(
     "the user's detected cognitive biases and tendencies",
-    "bias-profile",
+    scopeNs("bias-profile", userId),
     limit,
   );
 

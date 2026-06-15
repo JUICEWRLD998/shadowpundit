@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { SPRING } from "@/lib/motion";
+import { NavWallet } from "@/components/auth/NavWallet";
 import styles from "./Navbar.module.css";
 
 interface NavItem {
@@ -83,14 +84,7 @@ export function Navbar() {
         </nav>
 
         <div className={styles.right}>
-          <span
-            className={styles.live}
-            title="The 2026 World Cup is underway"
-          >
-            <span className={styles.liveDot} aria-hidden />
-            <span className={styles.liveText}>World Cup 2026</span>
-            <span className={styles.liveTag}>LIVE</span>
-          </span>
+          <NavWallet />
 
           <button
             className={styles.menuBtn}
