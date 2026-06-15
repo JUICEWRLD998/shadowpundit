@@ -19,6 +19,7 @@ import { summarizePredictionsForPrompt } from "@/lib/predictionMemory";
 import {
   detectBiases,
   recallBiasNotes,
+  recallBiasProfiles,
   storeBiasProfiles,
   MIN_PREDICTIONS_FOR_BIAS,
 } from "@/lib/biasDetector";
@@ -26,8 +27,11 @@ import {
 export const maxDuration = 30;
 
 export async function GET() {
-  const notes = await recallBiasNotes();
-  return Response.json({ notes, configured: isMemWalConfigured() });
+  const [notes, profiles] = await Promise.all([
+    recallBiasNotes(),
+    recallBiasProfiles(),
+  ]);
+  return Response.json({ notes, profiles, configured: isMemWalConfigured() });
 }
 
 export async function POST() {

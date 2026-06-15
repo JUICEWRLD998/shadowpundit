@@ -200,6 +200,71 @@ export async function recallBiasNotes(limit = 10): Promise<string> {
   return lines.join("\n");
 }
 
+/* ------------------------------------------------- structured recall -- */
+
+const TYPE_BY_SLUG = new Set(Object.keys(BIAS_META));
+
+function biasField(block: string, label: string): string {
+  const m = block.match(new RegExp(`^${label}:\\s*(.+)$`, "mi"));
+  return m ? m[1].trim() : "";
+}
+
+/** Parse one stored `BIAS [...]` block back into a structured profile, or null. */
+function parseBiasMemory(raw: string): BiasProfile | null {
+  if (!/^BIAS \[/im.test(raw)) return null;
+
+  const detectedAt = raw.match(/^BIAS \[([^\]]+)\]/im)?.[1] ?? "";
+  const slug = biasField(raw, "Type").match(/^(\w+)/)?.[1] ?? "";
+  if (!TYPE_BY_SLUG.has(slug)) return null;
+  const type = slug as BiasType;
+
+  const severity = Math.min(
+    10,
+    Math.max(1, Number(biasField(raw, "Severity").match(/(\d+)/)?.[1] ?? 1)),
+  );
+  const evidence = biasField(raw, "Evidence")
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return {
+    type,
+    label: BIAS_META[type].label,
+    description: biasField(raw, "Pattern") || BIAS_META[type].description,
+    severity,
+    evidence,
+    detectedAt,
+    lastTriggered: detectedAt,
+    triggerCount: 1,
+    dnaColor: TIER_COLOR[severityTier(severity)],
+  } satisfies BiasProfile;
+}
+
+/**
+ * Recall stored biases as structured profiles for the Profile / Bias-DNA views.
+ * De-duplicates by type, keeping the highest-severity instance of each, sorted
+ * most-severe first. Returns [] when nothing's stored.
+ */
+export async function recallBiasProfiles(limit = 12): Promise<BiasProfile[]> {
+  const memories = await recallMemories(
+    "the user's detected cognitive biases and tendencies",
+    "bias-profile",
+    limit,
+  );
+
+  const byType = new Map<BiasType, BiasProfile>();
+  for (const m of memories) {
+    const profile = parseBiasMemory(m);
+    if (!profile) continue;
+    const existing = byType.get(profile.type);
+    if (!existing || profile.severity > existing.severity) {
+      byType.set(profile.type, profile);
+    }
+  }
+
+  return [...byType.values()].sort((a, b) => b.severity - a.severity);
+}
+
 /** Count distinct bias types present in recalled bias memories. */
 export function countDistinctBiasTypes(memories: string[]): number {
   const types = new Set<string>();
