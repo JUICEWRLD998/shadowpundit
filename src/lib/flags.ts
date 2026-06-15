@@ -132,6 +132,17 @@ const ALIASES: Record<string, string> = {
 
 const FALLBACK_FLAG = "🏳️";
 
+/**
+ * The three UK home nations use emoji tag sequences rather than the usual pair
+ * of regional-indicator letters, so they need an explicit ISO-style code that
+ * SVG flag CDNs understand (flagcdn serves `gb-eng`, `gb-sct`, `gb-wls`).
+ */
+const HOME_NATION_CODE: Record<string, string> = {
+  "🏴󠁧󠁢󠁥󠁮󠁧󠁿": "gb-eng",
+  "🏴󠁧󠁢󠁳󠁣󠁴󠁿": "gb-sct",
+  "🏴󠁧󠁢󠁷󠁬󠁳󠁿": "gb-wls",
+};
+
 function normalise(name: string): string {
   return name
     .trim()
@@ -147,4 +158,27 @@ export function countryFlag(name: string | undefined | null): string {
   const key = normalise(name);
   const canonical = ALIASES[key] ?? key;
   return FLAG_BY_NAME[canonical] ?? FALLBACK_FLAG;
+}
+
+/**
+ * Resolve a team name to a lowercase ISO-3166 code suitable for an SVG flag CDN
+ * (e.g. "argentina" → "ar", "England" → "gb-eng"). Returns null for unknown
+ * teams or knockout placeholders so callers can fall back gracefully.
+ *
+ * We derive the code from the emoji we already resolve: a flag emoji is just a
+ * pair of regional-indicator letters (U+1F1E6–U+1F1FF ⇒ A–Z), so the two map
+ * straight onto the country code without a second lookup table.
+ */
+export function flagCode(name: string | undefined | null): string | null {
+  const emoji = countryFlag(name);
+  if (emoji === FALLBACK_FLAG) return null;
+  if (HOME_NATION_CODE[emoji]) return HOME_NATION_CODE[emoji];
+
+  const points = Array.from(emoji, (ch) => ch.codePointAt(0) ?? 0);
+  const isFlag =
+    points.length === 2 &&
+    points.every((cp) => cp >= 0x1f1e6 && cp <= 0x1f1ff);
+  if (!isFlag) return null;
+
+  return points.map((cp) => String.fromCharCode(cp - 0x1f1e6 + 97)).join("");
 }

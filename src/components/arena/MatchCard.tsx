@@ -5,6 +5,7 @@
  */
 
 import type { WorldCupMatch } from "@/types";
+import { Flag } from "@/components/ui/Flag";
 import styles from "./MatchCard.module.css";
 
 const STAGE_LABEL: Partial<Record<WorldCupMatch["stage"], string>> = {
@@ -17,8 +18,7 @@ const STAGE_LABEL: Partial<Record<WorldCupMatch["stage"], string>> = {
 };
 
 export function MatchCard({ match }: { match: WorldCupMatch }) {
-  const { teamA, teamB, teamAFlag, teamBFlag, time, status, score, group, stage } =
-    match;
+  const { teamA, teamB, time, status, score, group, stage } = match;
 
   const center =
     status === "scheduled" ? time || "vs" : score || (status === "live" ? "LIVE" : "–");
@@ -29,13 +29,13 @@ export function MatchCard({ match }: { match: WorldCupMatch }) {
     <article className={styles.card} data-status={status}>
       <div className={styles.row}>
         <span className={styles.team}>
-          <span className={styles.flag}>{teamAFlag}</span>
+          <Flag name={teamA} size={20} className={styles.flag} />
           <span className={styles.name}>{teamA}</span>
         </span>
         <span className={`${styles.center} u-tnum`}>{center}</span>
         <span className={`${styles.team} ${styles.right}`}>
           <span className={styles.name}>{teamB}</span>
-          <span className={styles.flag}>{teamBFlag}</span>
+          <Flag name={teamB} size={20} className={styles.flag} />
         </span>
       </div>
       {tag && (

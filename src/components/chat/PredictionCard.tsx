@@ -7,7 +7,7 @@
  * resolve flags ourselves to keep the card visually consistent with fixtures.
  */
 
-import { countryFlag } from "@/lib/flags";
+import { Flag } from "@/components/ui/Flag";
 import styles from "./PredictionCard.module.css";
 
 export interface PredictionCardProps {
@@ -41,10 +41,10 @@ export function PredictionCard({
         <span className={styles.match}>
           {teams ? (
             <>
-              <span className={styles.flag}>{countryFlag(teams[0])}</span>
+              <Flag name={teams[0]} size={18} className={styles.flag} />
               {teams[0]}
               <span className={styles.vs}>vs</span>
-              <span className={styles.flag}>{countryFlag(teams[1])}</span>
+              <Flag name={teams[1]} size={18} className={styles.flag} />
               {teams[1]}
             </>
           ) : (
