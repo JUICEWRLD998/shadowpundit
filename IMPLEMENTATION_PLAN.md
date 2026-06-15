@@ -117,6 +117,7 @@
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
+| **Identity & Auth** | **Sui wallet sign-in** (`@mysten/dapp-kit` + signed-nonce session) | **CHANGED from the original anonymous-ID approach.** Each user is now their real Sui wallet address, proven by signing a nonce (no transaction, no gas). This is the true account: every Walrus/MemWal namespace is scoped to the verified address, so memory is private per-wallet and persists across devices. See the "Identity update" note below. |
 | **AI Provider** | Google Gemini (`gemini-2.0-flash`) via `@ai-sdk/google` | User has Gemini key. Fast, cheap, great for streaming. |
 | **Frontend** | Next.js 14 + TypeScript (App Router) | User's preferred stack. SSR, API routes, Vercel-native. |
 | **Backend** | Next.js API Routes (no separate Express server) | Single deployment on Vercel. API routes = serverless functions. Simpler. |
@@ -128,6 +129,26 @@
 | **Charts** | Recharts | Lightweight, composable, React-based. |
 | **Image Export** | html-to-image | Client-side PNG generation for report cards. |
 | **Enhancements** | All 7 included | Full competitive package. |
+
+### ⚠️ Identity update — Sui wallet replaces anonymous IDs
+
+> **This supersedes the original "anonymous userId hash" design throughout this document.**
+>
+> The app no longer generates an anonymous client-side id. **Identity is now a real Sui wallet address**, established through a sign-in handshake:
+>
+> ```
+> connect wallet → GET /api/auth/nonce → wallet signs the nonce message
+>   → POST /api/auth/verify (server checks the signature, confirms the address)
+>   → httpOnly, HMAC-signed session cookie set → user is "authenticated"
+> ```
+>
+> - **No transaction, no gas** — signing a personal message just proves wallet ownership.
+> - The **verified wallet address IS the account.** Every memory namespace is scoped to it via `scopeNs(base, address)` in `lib/memwal.ts` (e.g. `predictions::0xabc…`), so one wallet's predictions / biases / Shadow never bleed into another's.
+> - Every API route is gated by `requireSession()` (`lib/auth/session.ts`) and returns 401 without a valid session. The landing page (`/`) stays public; everything else sits behind `<AuthGate>`.
+> - Wherever this plan says *"anonymous userId / anonymous hash"* (e.g. the Leaderboard entry, Walrus namespaces), read it as **"verified Sui wallet address."** The leaderboard still shows an auto-generated *display name* derived from the address, so it reads anonymously in the UI while being backed by a real identity.
+>
+> **New files:** `lib/auth/{nonce,session}.ts`, `app/api/auth/{nonce,verify,session,logout}/route.ts`, `components/providers/SuiProvider.tsx`, `context/AuthContext.tsx`, `components/auth/{AuthGate,WalletBadge,NavWallet}.tsx`.
+> **New env vars:** `SESSION_SECRET` (signs session cookies — required in prod), `NEXT_PUBLIC_SUI_NETWORK` (mainnet|testnet).
 
 ---
 
@@ -1363,6 +1384,10 @@ MEMWAL_SERVER_URL=https://relayer.memory.walrus.xyz
 
 # === Football API ===
 WORLDCUP_API_URL=https://worldcup26.ir
+
+# === Sui Wallet Auth ===
+SESSION_SECRET=               # Long random string; signs session cookies (REQUIRED in prod)
+NEXT_PUBLIC_SUI_NETWORK=mainnet  # mainnet | testnet
 
 # === App ===
 NEXT_PUBLIC_APP_URL=https://shadowpundit.vercel.app
