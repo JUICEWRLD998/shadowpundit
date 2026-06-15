@@ -276,17 +276,19 @@
 /* ───── FEATURES ───── */
 
 .features {
-  padding-block: var(--sp-20);
+  padding-block: var(--sp-24);
 }
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--sp-5);
+  gap: var(--sp-6);
+  max-width: 1080px;
+  margin-inline: auto;
 }
 .card {
   position: relative;
-  padding: var(--sp-6);
-  border-radius: var(--r-lg);
+  padding: var(--sp-8);
+  border-radius: var(--r-xl);
   transition:
     transform var(--t-base) var(--ease-out-quart),
     border-color var(--t-base);

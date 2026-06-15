@@ -45,7 +45,7 @@ function displayRole(message: UIMessage): ChatRole | null {
 }
 
 export function ChatWindow() {
-  const { messages, sendMessage, setMessages, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   });
 
@@ -79,11 +79,6 @@ export function ChatWindow() {
 
   return (
     <section className={styles.window}>
-      <ChatHeader
-        onClear={() => setMessages([])}
-        canClear={!isEmpty && !isBusy}
-      />
-
       <div className={styles.scroll} ref={scrollRef}>
         <div className={styles.thread}>
           {isEmpty ? (

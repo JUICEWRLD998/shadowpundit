@@ -10,7 +10,7 @@
  * "thinking" indicator instead of an empty bubble.
  */
 
-import { Ghost, Sparkles } from "lucide-react";
+import { Ghost, Bot } from "lucide-react";
 import type { ChatRole } from "@/types";
 import styles from "./MessageBubble.module.css";
 
@@ -49,7 +49,7 @@ export function MessageBubble({
           <span className={styles.avatarSpacer} aria-hidden />
         ) : (
           <span className={styles.avatar} aria-hidden>
-            {role === "shadow" ? <Ghost size={16} /> : <Sparkles size={16} />}
+            {role === "shadow" ? <Ghost size={16} /> : <Bot size={16} />}
           </span>
         ))}
 
