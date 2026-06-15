@@ -4,8 +4,8 @@
  * ProfileView — the /profile surface: the user's "Bias DNA".
  *
  * Left: the animated double-helix (BiasDNA). Right: a card per detected bias
- * (BiasDetail). Below: the shareable Shadow Report Card (wired in a later
- * pass). Empty state nudges the user to make more predictions so detection has
+ * (BiasDetail). Below: the shareable Shadow Report Card (ReportCardSection).
+ * Empty state nudges the user to make more predictions so detection has
  * something to chew on.
  */
 
@@ -14,6 +14,7 @@ import { ArrowRight, Dna } from "lucide-react";
 import { useBiasProfile } from "@/hooks/useBiasProfile";
 import { BiasDNA } from "./BiasDNA";
 import { BiasDetail } from "./BiasDetail";
+import { ReportCardSection } from "./ReportCardSection";
 import { Reveal, Stagger, StaggerItem } from "@/components/ui/Reveal";
 import styles from "./ProfileView.module.css";
 
@@ -73,6 +74,12 @@ export function ProfileView() {
               ))}
             </Stagger>
           </div>
+        )}
+
+        {!loading && (
+          <Reveal>
+            <ReportCardSection biases={profiles} />
+          </Reveal>
         )}
       </div>
     </main>
