@@ -19,12 +19,26 @@
   gap: var(--sp-2);
 }
 .match {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 0;
   font-size: var(--step--1);
   font-weight: 600;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.flag {
+  font-size: 1.05em;
+  line-height: 1;
+}
+.vs {
+  margin-inline: var(--sp-1);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-faint);
 }
 .conf {
   font-size: 0.72rem;

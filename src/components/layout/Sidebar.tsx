@@ -16,10 +16,13 @@
 
 import { useEffect, useState } from "react";
 import { Calendar, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { useUpcomingMatches } from "@/hooks/useWorldCup";
 import { useRecentPredictions } from "@/hooks/usePredictions";
 import { MatchCard } from "@/components/arena/MatchCard";
 import { PredictionCard } from "@/components/chat/PredictionCard";
+import { Stagger, StaggerItem } from "@/components/ui/Reveal";
+import { SPRING } from "@/lib/motion";
 import styles from "./Sidebar.module.css";
 
 export function Sidebar() {
@@ -80,44 +83,61 @@ export function Sidebar() {
           <header className={styles.blockHead}>
             <h3 className={styles.title}>Upcoming fixtures</h3>
           </header>
-          <div className={styles.list}>
-            {matchesLoading ? (
+          {matchesLoading ? (
+            <div className={styles.list}>
               <SkeletonRows count={3} />
-            ) : matches.length > 0 ? (
-              matches.map((m) => <MatchCard key={m.id} match={m} />)
-            ) : (
-              <p className={styles.empty}>No fixtures to show right now.</p>
-            )}
-          </div>
+            </div>
+          ) : matches.length > 0 ? (
+            <Stagger className={styles.list} stagger={0.06}>
+              {matches.map((m) => (
+                <StaggerItem key={m.id}>
+                  <MatchCard match={m} />
+                </StaggerItem>
+              ))}
+            </Stagger>
+          ) : (
+            <p className={styles.empty}>No fixtures to show right now.</p>
+          )}
         </section>
 
         <section className={styles.block}>
           <header className={styles.blockHead}>
             <h3 className={styles.title}>Your recent calls</h3>
             {predictions.length > 0 && (
-              <span className={`${styles.count} u-tnum`}>{predictions.length}</span>
+              <motion.span
+                key={predictions.length}
+                className={`${styles.count} u-tnum`}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={SPRING.snappy}
+              >
+                {predictions.length}
+              </motion.span>
             )}
           </header>
-          <div className={styles.list}>
-            {predLoading ? (
+          {predLoading ? (
+            <div className={styles.list}>
               <SkeletonRows count={2} />
-            ) : predictions.length > 0 ? (
-              predictions.map((p, i) => (
-                <PredictionCard
-                  key={`${p.timestamp}-${i}`}
-                  match={p.match}
-                  pick={p.pick}
-                  predictedScore={p.predictedScore}
-                  confidence={p.confidence}
-                  reasoning={p.reasoning}
-                />
-              ))
-            ) : (
-              <p className={styles.empty}>
-                Make a call in the chat — it&apos;ll show up here, remembered.
-              </p>
-            )}
-          </div>
+            </div>
+          ) : predictions.length > 0 ? (
+            <Stagger className={styles.list} stagger={0.06}>
+              {predictions.map((p, i) => (
+                <StaggerItem key={`${p.timestamp}-${i}`}>
+                  <PredictionCard
+                    match={p.match}
+                    pick={p.pick}
+                    predictedScore={p.predictedScore}
+                    confidence={p.confidence}
+                    reasoning={p.reasoning}
+                  />
+                </StaggerItem>
+              ))}
+            </Stagger>
+          ) : (
+            <p className={styles.empty}>
+              Make a call in the chat — it&apos;ll show up here, remembered.
+            </p>
+          )}
         </section>
       </aside>
     </>

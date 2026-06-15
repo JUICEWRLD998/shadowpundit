@@ -3,26 +3,25 @@
 /**
  * Top navigation — fixed, glassy, present on every route.
  *
- * Two jobs:
- *  1. Move between the app's surfaces (Chat / Arena / Profile / Leaderboard).
- *  2. Carry the narrative via the Shadow status pill. Today it reads "Dormant";
- *     once the emergence engine lands (Phase 3) the same pill flips to "Awake"
- *     and starts glowing violet. Seeding it now makes that flip feel earned.
+ * Layout: wordmark on the left, primary links centered, and a live tournament
+ * pill on the right so the bar reads balanced rather than lopsided.
  */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   MessageSquare,
   Swords,
+  History,
   Dna,
   Trophy,
-  Ghost,
   Menu,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { SPRING } from "@/lib/motion";
 import styles from "./Navbar.module.css";
 
 interface NavItem {
@@ -34,16 +33,15 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/arena", label: "Arena", icon: Swords },
+  { href: "/calls", label: "Calls", icon: History },
   { href: "/profile", label: "Profile", icon: Dna },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
-/** Will become a live, prop-driven state once the Shadow can awaken. */
-type ShadowStatus = "dormant" | "awake";
-
-export function Navbar({ shadowStatus = "dormant" }: { shadowStatus?: ShadowStatus }) {
+export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -52,31 +50,48 @@ export function Navbar({ shadowStatus = "dormant" }: { shadowStatus?: ShadowStat
     <header className={styles.nav}>
       <div className={styles.inner}>
         <Link href="/" className={styles.brand} aria-label="Shadow Pundit home">
-          <span className={styles.brandMark} aria-hidden>
-            <span className={styles.brandYou}>S</span>
-            <span className={styles.brandShadow}>P</span>
-          </span>
           <span className={styles.brandText}>
             Shadow<span className={styles.brandTextAccent}>Pundit</span>
           </span>
         </Link>
 
         <nav className={styles.links} aria-label="Primary">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`${styles.link} ${isActive(href) ? styles.linkActive : ""}`}
-              aria-current={isActive(href) ? "page" : undefined}
-            >
-              <Icon size={16} strokeWidth={2} aria-hidden />
-              <span>{label}</span>
-            </Link>
-          ))}
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`${styles.link} ${active ? styles.linkActive : ""}`}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon size={16} strokeWidth={2} aria-hidden />
+                <span>{label}</span>
+                {active &&
+                  (reduceMotion ? (
+                    <span className={styles.indicator} />
+                  ) : (
+                    <motion.span
+                      layoutId="navIndicator"
+                      className={styles.indicator}
+                      transition={SPRING.snappy}
+                    />
+                  ))}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className={styles.right}>
-          <ShadowPill status={shadowStatus} />
+          <span
+            className={styles.live}
+            title="The 2026 World Cup is underway"
+          >
+            <span className={styles.liveDot} aria-hidden />
+            <span className={styles.liveText}>World Cup 2026</span>
+            <span className={styles.liveTag}>LIVE</span>
+          </span>
+
           <button
             className={styles.menuBtn}
             onClick={() => setMobileOpen((v) => !v)}
@@ -106,25 +121,5 @@ export function Navbar({ shadowStatus = "dormant" }: { shadowStatus?: ShadowStat
         ))}
       </nav>
     </header>
-  );
-}
-
-function ShadowPill({ status }: { status: ShadowStatus }) {
-  const awake = status === "awake";
-  return (
-    <span
-      className={`${styles.pill} ${awake ? styles.pillAwake : ""}`}
-      title={
-        awake
-          ? "Your Shadow has awakened."
-          : "Your Shadow is still gathering data on you."
-      }
-    >
-      <Ghost size={14} aria-hidden />
-      <span className={styles.pillDot} />
-      <span className={styles.pillText}>
-        Shadow · {awake ? "Awake" : "Dormant"}
-      </span>
-    </span>
   );
 }

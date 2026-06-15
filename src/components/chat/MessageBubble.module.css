@@ -18,6 +18,12 @@
   margin-left: auto;
 }
 
+/* Grouped continuation — sits tight under the previous bubble of the same run.
+   The negative margin overrides the thread's gap so a run reads as one block. */
+.grouped {
+  margin-top: calc(var(--sp-5) * -1 + var(--sp-1));
+}
+
 /* ---- Avatar --------------------------------------------------------------- */
 
 .avatar {
@@ -31,6 +37,11 @@
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-muted);
+}
+/* Keeps grouped continuations aligned under the first bubble (no avatar). */
+.avatarSpacer {
+  flex-shrink: 0;
+  width: 30px;
 }
 .assistant .avatar {
   color: var(--you-300);
@@ -109,6 +120,30 @@
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.6;
+}
+
+/* Streaming caret — blinks at the tail of the assistant's text as it arrives. */
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--you-300);
+  animation: caretBlink 1s steps(2, start) infinite;
+}
+.shadow .caret {
+  background: var(--shadow-300);
+}
+@keyframes caretBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 /* ---- Thinking indicator --------------------------------------------------- */

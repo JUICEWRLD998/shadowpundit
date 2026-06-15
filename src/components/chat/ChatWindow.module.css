@@ -3,11 +3,36 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  position: relative;
+}
+
+/* Faint living ambience behind the thread — a slow violet/blue breath. */
+.window::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(50% 40% at 50% 0%, oklch(0.5 0.2 295 / 0.06), transparent 70%),
+    radial-gradient(45% 35% at 50% 100%, oklch(0.56 0.16 250 / 0.05), transparent 70%);
+  animation: ambientBreath 9s var(--ease-in-out) infinite;
+}
+@keyframes ambientBreath {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ---- Scrolling transcript ------------------------------------------------- */
 
 .scroll {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -25,6 +50,36 @@
   min-height: 100%;
 }
 
+/* Session divider — a centered hairline label ("Today"). */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-1);
+  color: var(--text-faint);
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to var(--_dir, right),
+    transparent,
+    var(--border)
+  );
+}
+.divider::after {
+  --_dir: left;
+}
+.divider span {
+  flex-shrink: 0;
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .error {
   align-self: center;
   padding: var(--sp-2) var(--sp-4);
@@ -38,6 +93,8 @@
 /* ---- Composer (sticky footer) --------------------------------------------- */
 
 .composer {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   border-top: 1px solid var(--border);
   background: linear-gradient(to top, var(--bg) 60%, transparent);
@@ -115,6 +172,10 @@
 }
 
 .suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--r-md);
   border: 1px solid var(--border);
@@ -138,6 +199,17 @@
 .suggestion:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.suggestionIcon {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition:
+    color var(--t-fast),
+    transform var(--t-fast) var(--ease-out-quart);
+}
+.suggestion:hover:not(:disabled) .suggestionIcon {
+  color: var(--you-300);
+  transform: translate(2px, -2px);
 }
 
 @media (max-width: 560px) {

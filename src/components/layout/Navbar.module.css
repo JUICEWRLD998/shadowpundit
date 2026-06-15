@@ -21,50 +21,18 @@
 
 /* ---- Brand ---------------------------------------------------------------- */
 
+/* Brand + right cluster flex equally so the centered links stay truly centered. */
 .brand {
+  flex: 1 1 0;
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-3);
-  flex-shrink: 0;
-}
-
-.brandMark {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-sm);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 0.95rem;
-  letter-spacing: -0.04em;
-  background: linear-gradient(135deg, var(--you-600), var(--shadow-600));
-  box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.25),
-    0 4px 12px oklch(0 0 0 / 0.4);
-  overflow: hidden;
-}
-.brandMark::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 45%, oklch(1 0 0 / 0.18) 50%, transparent 55%);
-}
-.brandYou,
-.brandShadow {
-  position: relative;
-  color: oklch(0.98 0 0 / 0.95);
-  line-height: 1;
-}
-.brandShadow {
-  margin-left: -2px;
+  min-width: 0;
 }
 
 .brandText {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   letter-spacing: -0.02em;
   color: var(--text);
 }
@@ -72,16 +40,17 @@
   color: var(--shadow-300);
 }
 
-/* ---- Desktop links -------------------------------------------------------- */
+/* ---- Desktop links (centered) --------------------------------------------- */
 
 .links {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--sp-1);
-  margin-left: var(--sp-4);
 }
 
 .link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
@@ -103,60 +72,68 @@
   background: oklch(1 0 0 / 0.06);
 }
 
-/* ---- Right cluster -------------------------------------------------------- */
-
-.right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
+/* Sliding active indicator (shared layoutId animates it between links). */
+.indicator {
+  position: absolute;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  bottom: 2px;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--you-400), var(--shadow-400));
+  box-shadow: 0 0 8px oklch(0.66 0.2 295 / 0.5);
 }
 
-.pill {
+/* ---- Right cluster (live pill + mobile button) ---------------------------- */
+
+.right {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+/* Live tournament pill — signals the World Cup is underway. */
+.live {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-3);
   border-radius: var(--r-full);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--surface-2);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--step--1);
-  letter-spacing: -0.01em;
   white-space: nowrap;
 }
-.pillDot {
-  width: 7px;
-  height: 7px;
+.liveDot {
+  width: 8px;
+  height: 8px;
   border-radius: var(--r-full);
-  background: var(--text-faint);
-  box-shadow: 0 0 0 0 transparent;
+  background: var(--negative);
+  box-shadow: 0 0 0 0 oklch(0.64 0.21 25 / 0.6);
+  animation: liveDot 1.8s var(--ease-in-out) infinite;
 }
-.pillText {
-  font-weight: 500;
-}
-
-/* Awake state — violet, alive, pulsing. */
-.pillAwake {
-  color: var(--shadow-300);
-  border-color: var(--border-shadow);
-  background: oklch(0.5 0.2 295 / 0.12);
-  box-shadow: var(--glow-shadow);
-}
-.pillAwake .pillDot {
-  background: var(--shadow-400);
-  animation: pillPulse 1.8s var(--ease-in-out) infinite;
-}
-
-@keyframes pillPulse {
+@keyframes liveDot {
   0%,
   100% {
-    box-shadow: 0 0 0 0 oklch(0.66 0.2 295 / 0.55);
+    box-shadow: 0 0 0 0 oklch(0.64 0.21 25 / 0.55);
   }
   50% {
-    box-shadow: 0 0 0 5px oklch(0.66 0.2 295 / 0);
+    box-shadow: 0 0 0 5px oklch(0.64 0.21 25 / 0);
   }
+}
+.liveText {
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.liveTag {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--negative);
 }
 
 /* ---- Mobile --------------------------------------------------------------- */
@@ -206,10 +183,13 @@
   .menuBtn {
     display: inline-flex;
   }
-  .pillText {
+}
+
+@media (max-width: 560px) {
+  .liveText {
     display: none;
   }
-  .pill {
+  .live {
     padding: var(--sp-1) var(--sp-2);
   }
 }

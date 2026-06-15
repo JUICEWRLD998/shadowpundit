@@ -18,6 +18,10 @@ interface MessageBubbleProps {
   role: ChatRole;
   content: string;
   pending?: boolean;
+  /** Show a blinking caret after the text while this message streams in. */
+  streaming?: boolean;
+  /** Continuation of a same-role run — hides the avatar + label and tucks in. */
+  grouped?: boolean;
 }
 
 const ROLE_LABEL: Record<ChatRole, string> = {
@@ -26,19 +30,31 @@ const ROLE_LABEL: Record<ChatRole, string> = {
   shadow: "The Shadow",
 };
 
-export function MessageBubble({ role, content, pending = false }: MessageBubbleProps) {
+export function MessageBubble({
+  role,
+  content,
+  pending = false,
+  streaming = false,
+  grouped = false,
+}: MessageBubbleProps) {
   const showThinking = pending && content.length === 0;
 
   return (
-    <div className={`${styles.row} ${styles[role]}`} data-role={role}>
-      {role !== "user" && (
-        <span className={styles.avatar} aria-hidden>
-          {role === "shadow" ? <Ghost size={16} /> : <Sparkles size={16} />}
-        </span>
-      )}
+    <div
+      className={`${styles.row} ${styles[role]} ${grouped ? styles.grouped : ""}`}
+      data-role={role}
+    >
+      {role !== "user" &&
+        (grouped ? (
+          <span className={styles.avatarSpacer} aria-hidden />
+        ) : (
+          <span className={styles.avatar} aria-hidden>
+            {role === "shadow" ? <Ghost size={16} /> : <Sparkles size={16} />}
+          </span>
+        ))}
 
       <div className={styles.stack}>
-        <span className={styles.label}>{ROLE_LABEL[role]}</span>
+        {!grouped && <span className={styles.label}>{ROLE_LABEL[role]}</span>}
         <div className={`${styles.bubble} glass`}>
           {showThinking ? (
             <span className={styles.thinking} aria-label="Thinking">
@@ -47,7 +63,10 @@ export function MessageBubble({ role, content, pending = false }: MessageBubbleP
               <span />
             </span>
           ) : (
-            <p className={styles.text}>{content}</p>
+            <p className={styles.text}>
+              {content}
+              {streaming && <span className={styles.caret} aria-hidden />}
+            </p>
           )}
         </div>
       </div>

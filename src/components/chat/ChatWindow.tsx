@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import type { ChatRole } from "@/types";
@@ -22,10 +23,10 @@ import styles from "./ChatWindow.module.css";
 
 /** Conversation openers shown on the empty state. */
 const SUGGESTIONS = [
-  "Argentina vs Spain in the final — who lifts it?",
-  "I think England finally goes all the way. Convince me I'm wrong.",
-  "Give me a bold group-stage upset to back.",
-  "Brazil 3-1 Croatia. Am I overrating the Seleção?",
+  "Who are the favourites to win the World Cup this year?",
+  "I'm backing Brazil to go all the way. What do you think?",
+  "Which group-stage games should I watch this weekend?",
+  "Help me pick a winner for France vs Argentina.",
 ];
 
 /** Collapse a UIMessage's text parts into one string for display. */
@@ -44,7 +45,7 @@ function displayRole(message: UIMessage): ChatRole | null {
 }
 
 export function ChatWindow() {
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, setMessages, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   });
 
@@ -68,24 +69,61 @@ export function ChatWindow() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [visibleMessages, awaitingFirstToken]);
 
+  // After the last assistant message, any "thinking" bubble continues that same
+  // run — so the assistant's trailing message should not show its meta if a
+  // pending bubble follows it.
+  const lastVisibleRole =
+    visibleMessages.length > 0
+      ? displayRole(visibleMessages[visibleMessages.length - 1]!)
+      : null;
+
   return (
     <section className={styles.window}>
+      <ChatHeader
+        onClear={() => setMessages([])}
+        canClear={!isEmpty && !isBusy}
+      />
+
       <div className={styles.scroll} ref={scrollRef}>
         <div className={styles.thread}>
           {isEmpty ? (
             <EmptyState onPick={(text) => sendMessage({ text })} disabled={isBusy} />
           ) : (
-            visibleMessages.map((m) => (
-              <MessageBubble
-                key={m.id}
-                role={displayRole(m)!}
-                content={messageText(m)}
-              />
-            ))
+            <>
+              <div className={styles.divider} aria-hidden>
+                <span>Today</span>
+              </div>
+
+              {visibleMessages.map((m, i) => {
+                const role = displayRole(m)!;
+                const prevRole =
+                  i > 0 ? displayRole(visibleMessages[i - 1]!) : null;
+                const isLast = i === visibleMessages.length - 1;
+                const streaming =
+                  isLast && role === "assistant" && status === "streaming";
+                // First message of a same-role run shows the avatar + label;
+                // grouped continuations hide them and tuck in tighter.
+                const grouped = role === prevRole;
+                return (
+                  <MessageBubble
+                    key={m.id}
+                    role={role}
+                    content={messageText(m)}
+                    streaming={streaming}
+                    grouped={grouped}
+                  />
+                );
+              })}
+            </>
           )}
 
           {awaitingFirstToken && (
-            <MessageBubble role="assistant" content="" pending />
+            <MessageBubble
+              role="assistant"
+              content=""
+              pending
+              grouped={lastVisibleRole === "assistant"}
+            />
           )}
 
           {error && (
@@ -135,7 +173,8 @@ function EmptyState({
             onClick={() => onPick(s)}
             disabled={disabled}
           >
-            {s}
+            <span>{s}</span>
+            <ArrowUpRight size={15} aria-hidden className={styles.suggestionIcon} />
           </button>
         ))}
       </div>
