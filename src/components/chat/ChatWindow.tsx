@@ -12,14 +12,35 @@
  *   - `status` is "submitted" → "streaming" → "ready" (or "error").
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
+import { AnimatePresence } from "framer-motion";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import type { ChatRole } from "@/types";
+import { useShadowState } from "@/hooks/useShadowState";
 import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
+import { ShadowAwakening } from "./ShadowAwakening";
 import styles from "./ChatWindow.module.css";
+
+/** localStorage flag so the awakening ceremony plays at most once per browser. */
+const AWAKENED_KEY = "sp_shadow_awakened";
+const hasAwakened = () =>
+  typeof window !== "undefined" && window.localStorage.getItem(AWAKENED_KEY) === "1";
+const markAwakened = () => {
+  try {
+    window.localStorage.setItem(AWAKENED_KEY, "1");
+  } catch {
+    /* private mode / storage disabled — overlay may replay, harmless */
+  }
+};
+
+/** A Shadow interjection, anchored to the assistant message it follows. */
+interface ShadowTurn {
+  content: string;
+  pending: boolean;
+}
 
 /** Conversation openers shown on the empty state. */
 const SUGGESTIONS = [
@@ -49,8 +70,24 @@ export function ChatWindow() {
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   });
 
+  const { emerge, respond } = useShadowState();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Shadow interjections live outside useChat (which only knows user/assistant),
+  // keyed by the assistant message id they follow so they render in-place.
+  const [shadowTurns, setShadowTurns] = useState<Record<string, ShadowTurn>>({});
+  const [awakening, setAwakening] = useState<{
+    message: string;
+    anchorId: string;
+  } | null>(null);
+
+  // Mirror of the Shadow's active state, readable synchronously inside effects.
+  const shadowActiveRef = useRef(false);
+  // Assistant message ids already handled, so each turn triggers the Shadow once.
+  const processedRef = useRef<Set<string>>(new Set());
+  const prevStatusRef = useRef(status);
 
   const isBusy = status === "submitted" || status === "streaming";
   const isEmpty = messages.length === 0;
@@ -64,10 +101,10 @@ export function ChatWindow() {
     [messages],
   );
 
-  // Keep the latest turn in view as content streams in.
+  // Keep the latest turn in view as content (or a Shadow interjection) arrives.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [visibleMessages, awaitingFirstToken]);
+  }, [visibleMessages, awaitingFirstToken, shadowTurns]);
 
   // After the last assistant message, any "thinking" bubble continues that same
   // run — so the assistant's trailing message should not show its meta if a
@@ -76,6 +113,61 @@ export function ChatWindow() {
     visibleMessages.length > 0
       ? displayRole(visibleMessages[visibleMessages.length - 1]!)
       : null;
+
+  /**
+   * Runs once after each assistant turn settles. Either spawns the Shadow (the
+   * first time the user crosses the emergence threshold) or, once it's awake,
+   * lets it interject with a counter-take anchored under that assistant turn.
+   */
+  const handleAfterTurn = useCallback(
+    async (anchorId: string, convo: UIMessage[]) => {
+      let active = shadowActiveRef.current;
+
+      if (!active) {
+        const { shadow, fresh } = await emerge();
+        if (shadow) {
+          active = true;
+          shadowActiveRef.current = true;
+          if (fresh && !hasAwakened()) {
+            markAwakened();
+            setAwakening({ message: shadow.emergenceMessage, anchorId });
+            return; // the ceremony delivers the Shadow's first words
+          }
+        }
+      }
+
+      if (!active) return;
+
+      // Interject: show a thinking bubble, then fill it (or drop it if silent).
+      setShadowTurns((t) => ({ ...t, [anchorId]: { content: "", pending: true } }));
+      const text = await respond(convo);
+      setShadowTurns((t) => {
+        if (!text) {
+          const next = { ...t };
+          delete next[anchorId];
+          return next;
+        }
+        return { ...t, [anchorId]: { content: text, pending: false } };
+      });
+    },
+    [emerge, respond],
+  );
+
+  // Detect the streaming→ready transition and trigger the Shadow exactly once.
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    const justFinished =
+      (prev === "streaming" || prev === "submitted") && status === "ready";
+    if (!justFinished) return;
+
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!lastAssistant || processedRef.current.has(lastAssistant.id)) return;
+    processedRef.current.add(lastAssistant.id);
+
+    void handleAfterTurn(lastAssistant.id, messages);
+  }, [status, messages, handleAfterTurn]);
 
   return (
     <section className={styles.window}>
@@ -99,14 +191,23 @@ export function ChatWindow() {
                 // First message of a same-role run shows the avatar + label;
                 // grouped continuations hide them and tuck in tighter.
                 const grouped = role === prevRole;
+                const shadowTurn = shadowTurns[m.id];
                 return (
-                  <MessageBubble
-                    key={m.id}
-                    role={role}
-                    content={messageText(m)}
-                    streaming={streaming}
-                    grouped={grouped}
-                  />
+                  <Fragment key={m.id}>
+                    <MessageBubble
+                      role={role}
+                      content={messageText(m)}
+                      streaming={streaming}
+                      grouped={grouped}
+                    />
+                    {shadowTurn && (
+                      <MessageBubble
+                        role="shadow"
+                        content={shadowTurn.content}
+                        pending={shadowTurn.pending}
+                      />
+                    )}
+                  </Fragment>
                 );
               })}
             </>
@@ -136,6 +237,23 @@ export function ChatWindow() {
           <ChatInput onSend={(text) => sendMessage({ text })} disabled={isBusy} />
         </div>
       </div>
+
+      <AnimatePresence>
+        {awakening && (
+          <ShadowAwakening
+            message={awakening.message}
+            onDismiss={() => {
+              // Drop the Shadow's first words into the thread, anchored to the
+              // turn that triggered the emergence.
+              setShadowTurns((t) => ({
+                ...t,
+                [awakening.anchorId]: { content: awakening.message, pending: false },
+              }));
+              setAwakening(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 }
