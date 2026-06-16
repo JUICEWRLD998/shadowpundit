@@ -11,7 +11,7 @@ This guide is written so you can follow it top-to-bottom in one sitting (~20–3
 ### Prerequisites
 - [ ] A **Sui wallet** browser extension installed (Slush / Sui Wallet) with at least one account.
 - [ ] `.env.local` filled in (all keys are already set in your environment):
-  - `GOOGLE_GENERATIVE_AI_API_KEY` — the chat won't respond without it
+  - `OPENROUTER_KEY` — the chat won't respond without it (serves Gemini)
   - `MEMWAL_DELEGATE_KEY` + `MEMWAL_ACCOUNT_ID` — memory persistence (predictions, biases, Shadow)
   - `SESSION_SECRET` — signs your session cookie
   - `NEXT_PUBLIC_SUI_NETWORK=mainnet`
@@ -85,7 +85,7 @@ Who are the favourites to win the World Cup this year?
 - ✅ A "thinking" bubble appears, then the reply **streams in token-by-token** with a blinking caret.
 - ✅ The companion is warm, knowledgeable, and talks football. It should **NOT** mention "Shadow", "bias", or "analysis" — that's all secret at this stage.
 
-> ⚠️ If the reply errors: check the terminal. Most likely `GOOGLE_GENERATIVE_AI_API_KEY` is missing/invalid, or you hit Gemini free-tier quota (try again, or set `GEMINI_MODEL=gemini-2.5-flash`).
+> ⚠️ If the reply errors: check the terminal. Most likely `OPENROUTER_KEY` is missing/invalid, or your OpenRouter account is out of credits (top up at [openrouter.ai](https://openrouter.ai)).
 
 ---
 
@@ -229,7 +229,7 @@ node scripts/auth-smoketest.mjs http://localhost:3000
 
 | Symptom | Likely cause / fix |
 |---------|--------------------|
-| Chat reply errors or stays empty | `GOOGLE_GENERATIVE_AI_API_KEY` missing/invalid, or Gemini quota hit. Check terminal. Try `GEMINI_MODEL=gemini-2.5-flash`. |
+| Chat reply errors or stays empty | `OPENROUTER_KEY` missing/invalid, or OpenRouter credits exhausted. Check terminal. Top up at [openrouter.ai](https://openrouter.ai). |
 | Predictions don't persist / Shadow never emerges | MemWal relayer **401** in terminal = bad `MEMWAL_DELEGATE_KEY`/`MEMWAL_ACCOUNT_ID`. Memory isn't saving. |
 | Signature popup never appears | Wallet didn't connect, or it's already connected from before — try the **"Sign to enter"** button, or disconnect & reconnect. |
 | "Not authenticated" 401 on a page | Session expired or cookie blocked. Sign in again. Ensure cookies aren't blocked for localhost. |

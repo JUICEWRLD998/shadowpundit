@@ -1,35 +1,50 @@
 /**
- * Google Gemini model configuration.
+ * Model configuration — Gemini, served through OpenRouter.
  *
  * Centralizes model selection so every route shares one source of truth.
- * The @ai-sdk/google provider reads GOOGLE_GENERATIVE_AI_API_KEY from the
- * environment automatically — no key is passed here.
+ * We talk to Gemini via OpenRouter (paid credits) instead of Google's free
+ * tier, which sidesteps the per-key quota limits. The OpenRouter provider
+ * reads OPENROUTER_KEY from the environment.
+ *
+ * The exported names (chatModel, analysisModel, isGeminiConfigured) are kept
+ * stable so call sites don't need to change.
  *
  * Server only.
  */
 
-import { google } from "@ai-sdk/google";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 /**
- * Default chat model. `gemini-2.5-flash` — fast, cheap, great for streaming,
- * and available on this project's free tier (gemini-2.0-flash returns a
- * zero-quota error for the current key). Override with GEMINI_MODEL.
+ * OpenRouter client. The API key is read here explicitly so a missing key
+ * fails loudly at call time rather than silently. We tolerate the legacy
+ * OPENROUTER_API_KEY name too.
  */
-export const GEMINI_MODEL_ID = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
-/** The primary conversational model used by /api/chat. */
-export const chatModel = google(GEMINI_MODEL_ID);
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY || "",
+});
 
 /**
- * A separate handle for structured/analytical work (bias detection, roast
- * generation). Same underlying model today, but isolated so we can swap in a
- * stronger reasoning model later without touching call sites.
+ * Chat model — `google/gemini-2.5-flash`. Fast, cheap, great for streaming
+ * conversation and the Shadow's live voice. Override with CHAT_MODEL.
  */
-export const analysisModel = google(
-  process.env.GEMINI_ANALYSIS_MODEL || GEMINI_MODEL_ID,
-);
+export const CHAT_MODEL_ID =
+  process.env.CHAT_MODEL || "google/gemini-2.5-flash";
 
-/** True when the Gemini API key is present. */
+/**
+ * Analysis model — `google/gemini-2.5-pro`. Stronger reasoning for the
+ * structured/analytical work (bias detection, persona generation, prediction
+ * parsing, roasts). Override with ANALYSIS_MODEL.
+ */
+export const ANALYSIS_MODEL_ID =
+  process.env.ANALYSIS_MODEL || "google/gemini-2.5-pro";
+
+/** The primary conversational model used by /api/chat and the Shadow voice. */
+export const chatModel = openrouter.chat(CHAT_MODEL_ID);
+
+/** A stronger model for structured/analytical work. */
+export const analysisModel = openrouter.chat(ANALYSIS_MODEL_ID);
+
+/** True when the OpenRouter key is present. */
 export function isGeminiConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  return Boolean(process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY);
 }

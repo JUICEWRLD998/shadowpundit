@@ -3,26 +3,28 @@
  *   node --env-file=.env.local scripts/verify-env.mjs
  * Does NOT print secrets — only pass/fail + minimal context.
  */
-import { google } from "@ai-sdk/google";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText } from "ai";
 import { MemWal } from "@mysten-incubation/memwal";
 
 const line = (s) => console.log(s);
 let failures = 0;
 
-// ---- 1. Gemini -------------------------------------------------------------
-line("\n=== 1. Google Gemini ===");
+// ---- 1. Gemini via OpenRouter ----------------------------------------------
+line("\n=== 1. Gemini via OpenRouter ===");
 try {
-  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) throw new Error("no key set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const key = process.env.OPENROUTER_KEY || process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("no OPENROUTER_KEY set");
+  const openrouter = createOpenRouter({ apiKey: key });
+  const model = process.env.CHAT_MODEL || "google/gemini-2.5-flash";
   const { text } = await generateText({
-    model: google(model),
+    model: openrouter.chat(model),
     prompt: "Reply with exactly the word: PONG",
   });
-  line(`  ✓ Gemini (${model}) responded: "${text.trim().slice(0, 40)}"`);
+  line(`  ✓ OpenRouter (${model}) responded: "${text.trim().slice(0, 40)}"`);
 } catch (e) {
   failures++;
-  line(`  ✗ Gemini failed: ${e?.message || e}`);
+  line(`  ✗ OpenRouter failed: ${e?.message || e}`);
 }
 
 // ---- 2. MemWal -------------------------------------------------------------

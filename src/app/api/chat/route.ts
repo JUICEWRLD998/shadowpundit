@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 
   if (!isGeminiConfigured()) {
     return Response.json(
-      { error: "The AI model isn't configured. Set GOOGLE_GENERATIVE_AI_API_KEY." },
+      { error: "The AI model isn't configured. Set OPENROUTER_KEY." },
       { status: 503 },
     );
   }

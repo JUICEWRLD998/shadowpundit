@@ -53,7 +53,7 @@ Built for the **Walrus Memory World Cup** hackathon. Every prediction, bias, and
 | Layer | Choice |
 |-------|--------|
 | Framework | **Next.js** (App Router) + TypeScript |
-| AI | **Google Gemini** via the Vercel AI SDK (`@ai-sdk/google`) |
+| AI | **Google Gemini** served through **OpenRouter** via the Vercel AI SDK (`@openrouter/ai-sdk-provider`) |
 | Memory | **Walrus** via **MemWal** (`@mysten-incubation/memwal`) |
 | Auth / identity | **Sui wallet** sign-in (`@mysten/dapp-kit` + signed-nonce session) |
 | Football data | **WorldCup26.ir** (free live fixtures & results) |
@@ -78,12 +78,13 @@ cp .env.example .env.local
 
 | Variable | Required | What it's for |
 |----------|:---:|---------------|
-| `GOOGLE_GENERATIVE_AI_API_KEY` | ✅ | Gemini API key ([AI Studio](https://aistudio.google.com)) |
+| `OPENROUTER_KEY` | ✅ | OpenRouter API key ([openrouter.ai/keys](https://openrouter.ai/keys)) — serves Gemini |
 | `MEMWAL_DELEGATE_KEY` | ✅ | Walrus Memory delegate key |
 | `MEMWAL_ACCOUNT_ID` | ✅ | Walrus Memory account ID |
 | `SESSION_SECRET` | ✅ (prod) | Signs session cookies — any long random string |
 | `NEXT_PUBLIC_SUI_NETWORK` | – | `mainnet` (default) or `testnet` |
-| `GEMINI_MODEL` | – | Override the model (default `gemini-2.5-flash`) |
+| `CHAT_MODEL` | – | Chat model override (default `google/gemini-2.5-flash`) |
+| `ANALYSIS_MODEL` | – | Analysis model override (default `google/gemini-2.5-pro`) |
 
 > Generate a session secret: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
