@@ -116,9 +116,10 @@ export default function Home() {
                 <Ghost size={14} /> The Shadow
               </span>
               <p className={styles.duelQuote}>
-                “You always back the hot streak and call it 3–1. Every time you
-                do, you forget the defense on the other side. This one&apos;s
-                tighter than you think — I&apos;ll take the 1–1 draw.”
+                “You&apos;re pinning the whole game on Neymar again. One bad
+                night from him and Brazil get shocked — and deep down you know
+                it. Be honest: you&apos;re scared they lose. I&apos;ll say they
+                do.”
               </p>
               <span className={styles.duelMeta}>Shadow Confidence 8/10</span>
             </SpotlightCard>

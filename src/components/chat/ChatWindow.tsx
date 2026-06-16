@@ -45,9 +45,9 @@ interface ShadowTurn {
 /** Conversation openers shown on the empty state. */
 const SUGGESTIONS = [
   "Who are the favourites to win the World Cup this year?",
-  "I'm backing Brazil to go all the way. What do you think?",
+  "Brazil vs Croatia — I'm backing Brazil to win 3–1, Neymar to lead them. Confidence 9/10.",
   "Which group-stage games should I watch this weekend?",
-  "Help me pick a winner for France vs Argentina.",
+  "France vs Senegal — I'm backing France to win 3–2, Mbappé to lead them. Confidence 8/10.",
 ];
 
 /** Collapse a UIMessage's text parts into one string for display. */
