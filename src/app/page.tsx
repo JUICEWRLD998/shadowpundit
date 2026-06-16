@@ -6,7 +6,6 @@ import {
   Ghost,
   Swords,
   Database,
-  Flame,
 } from "lucide-react";
 import { HeroBackground } from "@/components/landing/HeroBackground";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
@@ -106,7 +105,7 @@ export default function Home() {
             </SpotlightCard>
 
             <div className={styles.duelVs}>
-              <Flame size={18} />
+              <Swords size={18} />
             </div>
 
             <SpotlightCard
@@ -117,8 +116,9 @@ export default function Home() {
                 <Ghost size={14} /> The Shadow
               </span>
               <p className={styles.duelQuote}>
-                “You said that last time. You mentioned Neymar in 4 of 5 picks.
-                Your accuracy drops 35% vs Europe. I&apos;ll take the draw.”
+                “You always back the hot streak and call it 3–1. Every time you
+                do, you forget the defense on the other side. This one&apos;s
+                tighter than you think — I&apos;ll take the 1–1 draw.”
               </p>
               <span className={styles.duelMeta}>Shadow Confidence 8/10</span>
             </SpotlightCard>

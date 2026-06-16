@@ -390,7 +390,6 @@
     grid-template-columns: 1fr;
   }
   .duelVs {
-    transform: rotate(90deg);
     justify-self: center;
   }
   .grid {
