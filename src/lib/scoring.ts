@@ -16,14 +16,25 @@
 import type { PickSide, WorldCupMatch } from "@/types";
 import type { RecalledPrediction } from "./predictionMemory";
 
-/** Normalize a team name for tolerant matching (diacritics, case, spacing). */
+/**
+ * Normalize a team name for tolerant matching. Strips diacritics, case, and
+ * punctuation, then sorts the remaining words so different word orderings of
+ * the same name match — e.g. "DR Congo" and "Congo DR" (both → "congo dr"),
+ * which differ between fixture providers. Only neutral filler words are
+ * dropped; distinguishing tokens like "republic"/"dr" are kept so distinct
+ * nations (Congo vs Congo DR, Czech Republic) never collide.
+ */
 function norm(name: string): string {
-  return name
+  const STOP = new Set(["of", "the", "and"]);
+  const words = name
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
-    .trim();
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w && !STOP.has(w));
+  return words.sort().join(" ");
 }
 
 /** Split a recalled "Team A vs Team B" matchup into its two sides. */
