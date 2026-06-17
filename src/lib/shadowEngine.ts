@@ -161,22 +161,89 @@ function parseShadowMemory(raw: string): ShadowSnapshot | null {
   };
 }
 
-/** Recall the live Shadow, newest record wins. Null if it hasn't spawned yet. */
-export async function getShadowSnapshot(
-  userId?: string | null,
-): Promise<ShadowSnapshot | null> {
+/* ----------------------------------------------------------- snapshot cache -- */
+
+/**
+ * Per-user in-memory cache of the last-good Shadow snapshot.
+ *
+ * Walrus/MemWal recall is slow and intermittently flaky (seconds-long reads,
+ * occasional timeouts). When a recall failed OR came back suspiciously empty,
+ * `getShadowSnapshot` used to return null — and the chat route reads null as
+ * "the Shadow hasn't spawned" and stays silent. So a live Shadow would go quiet
+ * purely because MemWal blipped.
+ *
+ * This cache fixes that: a successful recall is remembered, a fresh hit skips
+ * the slow round-trip entirely, and a failed/empty recall falls back to the
+ * cached Shadow instead of going silent.
+ */
+interface CachedSnapshot {
+  snap: ShadowSnapshot;
+  ts: number;
+}
+const snapshotCache = new Map<string, CachedSnapshot>();
+/** Within this window, serve the cache without touching MemWal at all. */
+const SNAPSHOT_FRESH_MS = 60_000;
+/** Beyond fresh, still fall back to a cached Shadow if recall fails/empties. */
+const SNAPSHOT_STALE_FALLBACK_MS = 30 * 60_000;
+
+const cacheKey = (userId?: string | null): string => userId ?? "__anon__";
+
+/** Record a known-good snapshot so transient MemWal failures don't silence it. */
+function cacheSnapshot(userId: string | null | undefined, snap: ShadowSnapshot): void {
+  snapshotCache.set(cacheKey(userId), { snap, ts: Date.now() });
+}
+
+/** Read the freshest snapshot Walrus will give us, ignoring parse failures. */
+async function recallSnapshot(userId?: string | null): Promise<ShadowSnapshot | null> {
   const memories = await recallMemories(
     "the shadow's state, personality and emergence",
     scopeNs("shadow-state", userId),
     8,
-  ).catch(() => [] as string[]);
-
+  );
   const snaps = memories
     .map(parseShadowMemory)
     .filter((s): s is ShadowSnapshot => s !== null && s.active)
     .sort((a, b) => (a.activatedAt < b.activatedAt ? 1 : -1));
-
   return snaps[0] ?? null;
+}
+
+/** Recall the live Shadow, newest record wins. Null if it hasn't spawned yet. */
+export async function getShadowSnapshot(
+  userId?: string | null,
+): Promise<ShadowSnapshot | null> {
+  const cached = snapshotCache.get(cacheKey(userId));
+  const now = Date.now();
+
+  // Fast path: a recent success — skip the slow MemWal round-trip.
+  if (cached && now - cached.ts < SNAPSHOT_FRESH_MS) {
+    return cached.snap;
+  }
+
+  // Try to refresh from Walrus. A throw and a "no snapshot" result are treated
+  // the same: both are reasons to fall back to cache rather than trust emptiness.
+  let fresh: ShadowSnapshot | null = null;
+  try {
+    fresh = await recallSnapshot(userId);
+  } catch {
+    fresh = null;
+  }
+
+  if (fresh) {
+    cacheSnapshot(userId, fresh);
+    return fresh;
+  }
+
+  // Recall failed or came back empty while MemWal is flaky. Don't silence a
+  // Shadow we've already seen — serve the last-good one if it's recent enough.
+  if (cached && now - cached.ts < SNAPSHOT_STALE_FALLBACK_MS) {
+    console.warn(
+      "[shadowEngine] snapshot recall empty/failed; serving cached Shadow",
+    );
+    return cached.snap;
+  }
+
+  // Genuinely nothing: never spawned, or first-ever load failed with no cache.
+  return null;
 }
 
 /* ------------------------------------------------------------ birth --- -- */
@@ -254,6 +321,11 @@ export async function emergeShadow(
     await rememberAsync(formatShadowMemory(snap), scopeNs("shadow-state", userId));
   }
 
+  // Seed the cache immediately: the Walrus write above is async and won't be
+  // recallable for a moment, so without this the first interjection right after
+  // emergence could read an empty snapshot and stay silent.
+  cacheSnapshot(userId, snap);
+
   return snap;
 }
 
@@ -299,14 +371,32 @@ export async function generateShadowReply(
     });
 
     const modelMessages = await convertToModelMessages(messages);
-    const { text } = await generateText({
-      model: chatModel,
-      system,
-      messages: modelMessages,
-      temperature: 0.85,
-    });
 
-    return text.trim();
+    // Gemini 2.5 Flash (via OpenRouter/Google AI Studio) intermittently returns
+    // a blank completion — finishReason "stop" with 0 output tokens, no reasoning
+    // spend. It's an upstream quirk, not us: the grounding is present and the
+    // prompt never asks the Shadow to stay silent, so an empty reply is a
+    // FAILURE, not a choice. Retry a few times; a small temperature bump per
+    // attempt nudges the sampler off the empty path.
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const { text } = await generateText({
+        model: chatModel,
+        system,
+        messages: modelMessages,
+        temperature: 0.85 + (attempt - 1) * 0.05,
+      });
+      const trimmed = (text ?? "").trim();
+      if (trimmed) return trimmed;
+
+      console.warn(
+        `[shadowEngine] empty reply from ${chatModel.modelId} ` +
+          `(attempt ${attempt}/${MAX_ATTEMPTS})${attempt < MAX_ATTEMPTS ? " — retrying" : ""}`,
+      );
+    }
+
+    console.warn("[shadowEngine] reply still empty after retries; staying silent");
+    return "";
   } catch (error) {
     console.error("[shadowEngine] reply generation failed:", error);
     return "";

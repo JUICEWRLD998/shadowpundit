@@ -34,13 +34,8 @@ export interface UserStats {
  */
 const RIVALS: Omit<LeaderboardEntry, "rank">[] = [
   { userId: "r-aurelius", displayName: "Stoic Walrus", shadowAccuracy: 81, userAccuracy: 47, totalPredictions: 34, roastCount: 18, topBias: "star_player_bias", defianceRate: 22 },
-  { userId: "r-cassandra", displayName: "Doomed Oracle", shadowAccuracy: 76, userAccuracy: 52, totalPredictions: 41, roastCount: 21, topBias: "recency_bias", defianceRate: 31 },
   { userId: "r-nostromo", displayName: "Reckless Captain", shadowAccuracy: 73, userAccuracy: 58, totalPredictions: 27, roastCount: 11, topBias: "underdog_syndrome", defianceRate: 44 },
-  { userId: "r-mariana", displayName: "Deep Diver", shadowAccuracy: 69, userAccuracy: 61, totalPredictions: 38, roastCount: 14, topBias: "continental_bias", defianceRate: 38 },
-  { userId: "r-icarus", displayName: "Overconfident Sun", shadowAccuracy: 67, userAccuracy: 43, totalPredictions: 22, roastCount: 16, topBias: "home_team_bias", defianceRate: 19 },
   { userId: "r-pandora", displayName: "Curious Box", shadowAccuracy: 62, userAccuracy: 59, totalPredictions: 30, roastCount: 9, topBias: "bandwagon_bias", defianceRate: 41 },
-  { userId: "r-prospero", displayName: "Tempest Caller", shadowAccuracy: 58, userAccuracy: 64, totalPredictions: 25, roastCount: 7, topBias: "knockout_panic", defianceRate: 52 },
-  { userId: "r-ozymandias", displayName: "Fallen King", shadowAccuracy: 54, userAccuracy: 49, totalPredictions: 19, roastCount: 12, topBias: "revenge_picking", defianceRate: 27 },
   { userId: "r-sisyphus", displayName: "Eternal Optimist", shadowAccuracy: 49, userAccuracy: 66, totalPredictions: 33, roastCount: 6, topBias: "group_stage_fatigue", defianceRate: 57 },
 ];
 

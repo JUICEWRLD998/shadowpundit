@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.82",
     "@ai-sdk/react": "^3.0.207",
     "@gsap/react": "^2.1.2",
     "@mysten-incubation/memwal": "^0.0.7",

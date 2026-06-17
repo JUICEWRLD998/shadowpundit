@@ -277,26 +277,42 @@
 
 /* ---- Responsive ----------------------------------------------------------- */
 
+/* Tablet / large phone: drop Top bias + Defiance (hideMd). Six cells remain —
+   #, Predictor, Shadow, You, Calls, Roasts — so the grid needs six tracks. */
 @media (max-width: 860px) {
   .row {
-    grid-template-columns: 32px minmax(0, 1.6fr) 56px 56px;
+    grid-template-columns: 32px minmax(0, 1.6fr) repeat(4, 56px);
   }
   .hideMd {
     display: none;
   }
 }
 
+/* Phone: also drop Calls + Roasts (hideSm), leaving four cells. Champion cards
+   stack to one column. */
 @media (max-width: 600px) {
   .champGrid,
   .champGridSkeleton {
     grid-template-columns: 1fr;
   }
   .row {
-    grid-template-columns: 28px minmax(0, 1fr) 52px 52px;
+    grid-template-columns: 28px minmax(0, 1fr) 56px 56px;
     gap: var(--sp-2);
     padding: var(--sp-3) var(--sp-4);
   }
   .hideSm {
     display: none;
+  }
+}
+
+/* Narrow phone: tighten the numeric columns so the name keeps room. */
+@media (max-width: 380px) {
+  .row {
+    grid-template-columns: 24px minmax(0, 1fr) 48px 48px;
+    gap: var(--sp-1);
+    padding: var(--sp-3);
+  }
+  .title {
+    font-size: var(--step-3);
   }
 }

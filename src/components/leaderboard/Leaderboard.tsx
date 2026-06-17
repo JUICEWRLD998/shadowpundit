@@ -86,7 +86,7 @@ export function Leaderboard() {
         ) : (
           <>
             {categories && (
-              <Stagger className={styles.champGrid} stagger={0.07}>
+              <Stagger className={styles.champGrid} stagger={0.07} immediate>
                 <StaggerItem>
                   <ChampionCard
                     icon={<Crosshair size={13} aria-hidden />}
@@ -117,7 +117,7 @@ export function Leaderboard() {
               </Stagger>
             )}
 
-            <Reveal>
+            <Reveal immediate>
               <div className={styles.tableCard}>
                 <div className={`${styles.row} ${styles.headerRow}`} role="row">
                   <span className={styles.cRank}>#</span>
@@ -130,7 +130,7 @@ export function Leaderboard() {
                   <span className={`${styles.cNum} ${styles.hideMd}`}>Defiance</span>
                 </div>
 
-                <Stagger stagger={0.03}>
+                <Stagger stagger={0.03} immediate>
                   {entries.map((e) => (
                     <StaggerItem key={e.userId}>
                       <div
@@ -173,9 +173,9 @@ export function Leaderboard() {
 
             <p className={styles.note}>
               {!configured
-                ? "Connect Walrus Memory to enter the field — your stats will rank in live."
+                ? "Connect your Sui wallet to enter the field — your stats rank in live."
                 : youRank
-                  ? `You're ranked #${youRank} of ${entries.length}. Make sharper calls than your Shadow to climb.`
+                  ? `You're #${youRank} of ${entries.length}. This board ranks Shadows — beat yours consistently and you'll top Best Defiance instead.`
                   : "Make a few predictions in the chat and you'll join the field, ranked against every other Shadow."}
               <span className={styles.walrus}> · Powered by Walrus Memory 🦭</span>
             </p>

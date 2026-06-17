@@ -38,6 +38,9 @@ async function fetchJson(path: string, revalidate: number): Promise<unknown> {
     const res = await fetch(`${BASE_URL}${path}`, {
       next: { revalidate },
       headers: { accept: "application/json" },
+      // Cap the wait so an unreachable upstream (TLS reset / hang) falls back to
+      // the curated fixtures fast, instead of stalling every chat for ~20s.
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) {
       console.warn(`[worldcup] ${path} → HTTP ${res.status}`);

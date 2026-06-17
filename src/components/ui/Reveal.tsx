@@ -24,6 +24,13 @@ interface RevealProps {
   amount?: number;
   /** Delay before the entrance, seconds. */
   delay?: number;
+  /**
+   * Animate on mount instead of on scroll-into-view. Use for primary content
+   * that renders after an async load (e.g. a fetched table): `whileInView`'s
+   * IntersectionObserver can miss the initial in-view event for late-mounting
+   * elements, leaving them stuck at opacity 0. `immediate` sidesteps that.
+   */
+  immediate?: boolean;
 }
 
 export function Reveal({
@@ -32,17 +39,21 @@ export function Reveal({
   variants = fadeUp,
   amount = 0.2,
   delay = 0,
+  immediate = false,
 }: RevealProps) {
   const reduce = useReducedMotion();
   if (reduce) return <div className={className}>{children}</div>;
+
+  const trigger = immediate
+    ? { animate: "visible" as const }
+    : { whileInView: "visible" as const, viewport: { once: true, amount } };
 
   return (
     <motion.div
       className={className}
       variants={variants}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount }}
+      {...trigger}
       transition={delay ? { delay } : undefined}
     >
       {children}
@@ -57,6 +68,8 @@ interface StaggerProps {
   stagger?: number;
   delay?: number;
   amount?: number;
+  /** Animate on mount instead of on scroll-into-view. See Reveal's `immediate`. */
+  immediate?: boolean;
 }
 
 export function Stagger({
@@ -65,17 +78,21 @@ export function Stagger({
   stagger = 0.08,
   delay = 0,
   amount = 0.2,
+  immediate = false,
 }: StaggerProps) {
   const reduce = useReducedMotion();
   if (reduce) return <div className={className}>{children}</div>;
+
+  const trigger = immediate
+    ? { animate: "visible" as const }
+    : { whileInView: "visible" as const, viewport: { once: true, amount } };
 
   return (
     <motion.div
       className={className}
       variants={staggerContainer(stagger, delay)}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount }}
+      {...trigger}
     >
       {children}
     </motion.div>
