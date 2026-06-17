@@ -1,46 +1,61 @@
 /**
- * WorldCup26.ir API client.
+ * football-data.org API client (World Cup).
  *
- * Verified response shapes (June 2026):
- *   GET /get/games    → { games: [ { id, home_team_name_en, away_team_name_en,
- *                          home_score, away_score, group, matchday, type,
- *                          local_date: "MM/DD/YYYY HH:MM", stadium_id,
- *                          finished: "TRUE"|"FALSE", time_elapsed, ... } ] }
- *   GET /get/stadiums → { stadiums: [ { id, name_en, city_en, country_en } ] }
+ * Single source of fixtures + results. The free tier includes the World Cup
+ * (competition code "WC") at 10 requests/min �� well within our cache window.
  *
- * Knockout games swap `home_team_name_en` for `home_team_label`
- * ("Runner-up Group A") until the bracket fills in.
+ *   GET /v4/competitions/WC/matches
+ *     → { matches: [ {
+ *           id, utcDate, status, stage, group, matchday, venue,
+ *           homeTeam: { name, shortName, tla }, awayTeam: { ... },
+ *           score: { winner, fullTime: { home, away } },
+ *         } ] }
  *
- * Everything is defensive: unparseable records are skipped, and if the live API
- * is unreachable we fall back to a small set of real, confirmed-qualified teams
- * so the companion always has credible fixtures. The agent's prompt only ever
- * presents fixtures we hand it, so a graceful fallback is safer than throwing.
+ * Auth: header `X-Auth-Token: <FOOTBALL_DATA_API_KEY>`.
+ *
+ * Everything is defensive: unparseable records are skipped, and if the API is
+ * unreachable or the key is missing we fall back to a small set of real,
+ * confirmed-qualified teams so the companion always has credible fixtures. The
+ * agent's prompt only ever presents fixtures we hand it, so a graceful fallback
+ * is safer than throwing.
  *
  * Server only.
  */
 
-import type { MatchStage, MatchStatus, WorldCupMatch } from "@/types";
+import type { MatchStage, MatchStatus, WorldCupMatch, PickSide } from "@/types";
 import { countryFlag } from "./flags";
 
 const BASE_URL =
-  process.env.WORLDCUP_API_URL?.replace(/\/+$/, "") || "https://worldcup26.ir";
+  process.env.FOOTBALL_DATA_URL?.replace(/\/+$/, "") ||
+  "https://api.football-data.org/v4";
 
-/** Cache windows (seconds) — fixtures move fast on matchdays, venues never. */
-const REVALIDATE = {
-  matches: 180, // 3 min
-  stadiums: 86_400, // 1 day
-} as const;
+const COMPETITION = process.env.FOOTBALL_DATA_COMPETITION || "WC";
+
+const API_KEY = process.env.FOOTBALL_DATA_API_KEY || "";
+
+/** Cache window (seconds) — fixtures move fast on matchdays. */
+const REVALIDATE = 180; // 3 min
+
+export function isFootballDataConfigured(): boolean {
+  return Boolean(API_KEY);
+}
 
 /* ------------------------------------------------------------------ fetch -- */
 
-async function fetchJson(path: string, revalidate: number): Promise<unknown> {
+async function fetchJson(path: string): Promise<unknown> {
+  if (!API_KEY) {
+    console.warn("[worldcup] FOOTBALL_DATA_API_KEY not set — using fallback fixtures");
+    return null;
+  }
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
-      next: { revalidate },
-      headers: { accept: "application/json" },
-      // Cap the wait so an unreachable upstream (TLS reset / hang) falls back to
-      // the curated fixtures fast, instead of stalling every chat for ~20s.
-      signal: AbortSignal.timeout(4000),
+      next: { revalidate: REVALIDATE },
+      headers: { "X-Auth-Token": API_KEY, accept: "application/json" },
+      // football-data's full 104-match response can be slow on a cold request;
+      // allow enough headroom to land it instead of dropping to the fallback,
+      // while staying under typical serverless limits. Successful responses are
+      // cached for REVALIDATE seconds, so this only bites on a cold cache.
+      signal: AbortSignal.timeout(9000),
     });
     if (!res.ok) {
       console.warn(`[worldcup] ${path} → HTTP ${res.status}`);
@@ -53,17 +68,12 @@ async function fetchJson(path: string, revalidate: number): Promise<unknown> {
   }
 }
 
-/** Unwrap a known envelope key ({games:[...]}, {stadiums:[...]}) or a bare array. */
-function unwrap(payload: unknown, key: string): Record<string, unknown>[] {
+/** Unwrap the {matches:[...]} envelope (or a bare array). */
+function unwrap(payload: unknown): Record<string, unknown>[] {
   if (Array.isArray(payload)) return payload as Record<string, unknown>[];
   if (payload && typeof payload === "object") {
-    const inner = (payload as Record<string, unknown>)[key];
+    const inner = (payload as Record<string, unknown>).matches;
     if (Array.isArray(inner)) return inner as Record<string, unknown>[];
-    // tolerate generic envelopes too
-    for (const k of ["data", "results", "items"]) {
-      const v = (payload as Record<string, unknown>)[k];
-      if (Array.isArray(v)) return v as Record<string, unknown>[];
-    }
   }
   return [];
 }
@@ -83,146 +93,122 @@ function pick(obj: Record<string, unknown>, keys: string[]): string {
   return "";
 }
 
-/** Split "MM/DD/YYYY HH:MM" into a sortable ISO-ish date + a display time. */
-function parseLocalDate(local: string): { date: string; time: string; epoch: number } {
-  if (!local) return { date: "", time: "", epoch: 0 };
-  const [datePart = "", timePart = ""] = local.split(/\s+/);
-  const m = datePart.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  let isoDate = datePart;
-  if (m) {
-    const [, mm, dd, yyyy] = m;
-    isoDate = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-  }
-  const epoch = Date.parse(`${isoDate}T${timePart || "00:00"}:00`);
-  return {
-    date: isoDate,
-    time: timePart,
-    epoch: Number.isNaN(epoch) ? 0 : epoch,
-  };
+function asRecord(v: unknown): Record<string, unknown> {
+  return v && typeof v === "object" ? (v as Record<string, unknown>) : {};
 }
 
-const TYPE_TO_STAGE: Record<string, MatchStage> = {
-  r32: "round-of-32",
-  r16: "round-of-16",
-  qf: "quarter-final",
-  sf: "semi-final",
-  third: "third-place",
+/** Team display name from a football-data team object. */
+function teamName(team: unknown): string {
+  const t = asRecord(team);
+  return pick(t, ["name", "shortName", "tla"]);
+}
+
+/** Split an ISO UTC datetime into a sortable date + a display time. */
+function parseUtcDate(utc: string): { date: string; time: string } {
+  if (!utc) return { date: "", time: "" };
+  const [datePart = "", rest = ""] = utc.split("T");
+  const time = rest.slice(0, 5); // "HH:MM"
+  return { date: datePart, time };
+}
+
+/* football-data stage → our MatchStage. */
+const STAGE_MAP: Record<string, MatchStage> = {
+  last_32: "round-of-32",
+  round_of_32: "round-of-32",
+  last_16: "round-of-16",
+  round_of_16: "round-of-16",
+  quarter_finals: "quarter-final",
+  quarter_final: "quarter-final",
+  semi_finals: "semi-final",
+  semi_final: "semi-final",
   third_place: "third-place",
-  "3rd": "third-place",
+  "3rd_place": "third-place",
   final: "final",
 };
 
-function normaliseStage(type: string, matchday: string): MatchStage {
-  const t = type.toLowerCase();
-  if (t === "group" || t === "") {
+function normaliseStage(stage: string, matchday: string): MatchStage {
+  const s = stage.toLowerCase();
+  if (s === "group_stage" || s === "league_stage" || s === "") {
     const md = matchday === "2" ? "2" : matchday === "3" ? "3" : "1";
     return `group-matchday${md}` as MatchStage;
   }
-  return TYPE_TO_STAGE[t] ?? "group-matchday1";
+  return STAGE_MAP[s] ?? "group-matchday1";
 }
 
-function normaliseStatus(timeElapsed: string, finished: string, hasScore: boolean): MatchStatus {
-  const te = timeElapsed.toLowerCase();
-  if (te === "live" || /half|min|playing/.test(te)) return "live";
-  if (te === "finished" || finished.toUpperCase() === "TRUE") return "completed";
-  if (te === "notstarted") return "scheduled";
-  return hasScore ? "completed" : "scheduled";
+function normaliseStatus(status: string): MatchStatus {
+  const s = status.toUpperCase();
+  if (s === "IN_PLAY" || s === "PAUSED") return "live";
+  if (s === "FINISHED") return "completed";
+  return "scheduled"; // SCHEDULED, TIMED, POSTPONED, SUSPENDED, CANCELLED
 }
 
-function winnerFromScores(a: number, b: number): WorldCupMatch["winner"] {
+function winnerFromScores(a: number, b: number): PickSide {
   if (a === b) return "draw";
   return a > b ? "teamA" : "teamB";
 }
 
-/** Stadium id → { name, city }, built once from /get/stadiums. */
-type StadiumMap = Map<string, { name: string; city: string }>;
+/** "GROUP_A" → "A"; "Group C" → "C". */
+function normaliseGroup(group: string): string | undefined {
+  const m = group.match(/group[_\s]*([a-l])/i);
+  return m ? m[1].toUpperCase() : undefined;
+}
 
 function normaliseMatch(
   raw: Record<string, unknown>,
-  stadiums: StadiumMap,
   index: number,
 ): WorldCupMatch | null {
-  // Group games carry English names; knockout games carry placeholder labels.
-  const teamA =
-    pick(raw, ["home_team_name_en", "teamA", "home", "home_team"]) ||
-    pick(raw, ["home_team_label"]);
-  const teamB =
-    pick(raw, ["away_team_name_en", "teamB", "away", "away_team"]) ||
-    pick(raw, ["away_team_label"]);
+  const teamA = teamName(raw.homeTeam);
+  const teamB = teamName(raw.awayTeam);
+  // Knockout fixtures with unfilled brackets have null teams — skip until set.
   if (!teamA || !teamB) return null;
 
-  const homeScore = str(raw.home_score ?? raw.homeScore);
-  const awayScore = str(raw.away_score ?? raw.awayScore);
+  const status = normaliseStatus(pick(raw, ["status"]));
+
+  const ft = asRecord(asRecord(raw.score).fullTime);
+  const homeScore = str(ft.home);
+  const awayScore = str(ft.away);
   const hasScore = homeScore !== "" && awayScore !== "";
-
-  const { date, time } = parseLocalDate(pick(raw, ["local_date", "date", "datetime"]));
-
-  const status = normaliseStatus(
-    pick(raw, ["time_elapsed", "status"]),
-    pick(raw, ["finished"]),
-    hasScore,
-  );
-
-  // The API returns 0/0 for unplayed fixtures — only surface a score once the
-  // match is actually underway or done.
   const isPlayed = status === "completed" || status === "live";
   const score = isPlayed && hasScore ? `${homeScore}-${awayScore}` : undefined;
 
-  const stadium = stadiums.get(pick(raw, ["stadium_id", "stadiumId"]));
+  const { date, time } = parseUtcDate(pick(raw, ["utcDate"]));
 
   // A real flag only makes sense for an actual nation, not a "Winner Group A".
   const isRealTeamA = !/group|winner|runner|place|loser|tbd/i.test(teamA);
   const isRealTeamB = !/group|winner|runner|place|loser|tbd/i.test(teamB);
 
   return {
-    id: pick(raw, ["id", "_id"]) || `wc-${index}`,
+    id: pick(raw, ["id"]) || `wc-${index}`,
     teamA,
     teamB,
     teamAFlag: isRealTeamA ? countryFlag(teamA) : "🏳️",
     teamBFlag: isRealTeamB ? countryFlag(teamB) : "🏳️",
     date,
     time,
-    stadium: stadium?.name ?? "",
-    city: stadium?.city ?? "",
-    stage: normaliseStage(pick(raw, ["type"]), pick(raw, ["matchday"])),
+    stadium: pick(raw, ["venue"]),
+    city: "",
+    stage: normaliseStage(pick(raw, ["stage"]), pick(raw, ["matchday"])),
     status,
     score,
     winner:
       isPlayed && hasScore
         ? winnerFromScores(Number(homeScore), Number(awayScore))
         : undefined,
-    group: pick(raw, ["group"]) || undefined,
+    group: normaliseGroup(pick(raw, ["group"])),
   };
 }
 
 /* ----------------------------------------------------------------- public -- */
 
-async function getStadiumMap(): Promise<StadiumMap> {
-  const map: StadiumMap = new Map();
-  const rows = unwrap(await fetchJson("/get/stadiums", REVALIDATE.stadiums), "stadiums");
-  for (const row of rows) {
-    const id = pick(row, ["id", "_id"]);
-    if (!id) continue;
-    map.set(id, {
-      name: pick(row, ["name_en", "fifa_name", "name"]),
-      city: pick(row, ["city_en", "city"]),
-    });
-  }
-  return map;
-}
-
 /**
- * All tournament matches, normalised + venue-enriched. Falls back to a curated
- * set of real qualified teams when the live API is unreachable.
+ * All tournament matches, normalised. Falls back to a curated set of real
+ * qualified teams when the live API is unreachable or unconfigured.
  */
 export async function getMatches(): Promise<WorldCupMatch[]> {
-  const [gamesPayload, stadiums] = await Promise.all([
-    fetchJson("/get/games", REVALIDATE.matches),
-    getStadiumMap(),
-  ]);
+  const payload = await fetchJson(`/competitions/${COMPETITION}/matches`);
 
-  const matches = unwrap(gamesPayload, "games")
-    .map((row, i) => normaliseMatch(row, stadiums, i))
+  const matches = unwrap(payload)
+    .map((row, i) => normaliseMatch(row, i))
     .filter((m): m is WorldCupMatch => m !== null);
 
   return matches.length > 0 ? matches : FALLBACK_FIXTURES;
