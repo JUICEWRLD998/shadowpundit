@@ -8,6 +8,7 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -51,6 +52,14 @@ export function Navbar() {
     <header className={styles.nav}>
       <div className={styles.inner}>
         <Link href="/" className={styles.brand} aria-label="Shadow Pundit home">
+          <Image
+            src="/shadowpundit.png"
+            alt=""
+            width={28}
+            height={28}
+            className={styles.brandLogo}
+            priority
+          />
           <span className={styles.brandText}>
             Shadow<span className={styles.brandTextAccent}>Pundit</span>
           </span>

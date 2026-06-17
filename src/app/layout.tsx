@@ -65,7 +65,6 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: ["/og-image.png"],
   },
-  icons: { icon: "/favicon.ico" },
 };
 
 export const viewport: Viewport = {
