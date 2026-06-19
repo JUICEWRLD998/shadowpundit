@@ -84,7 +84,9 @@ cp .env.example .env.local
 | `SESSION_SECRET` | ✅ (prod) | Signs session cookies — any long random string |
 | `NEXT_PUBLIC_SUI_NETWORK` | – | `mainnet` (default) or `testnet` |
 | `CHAT_MODEL` | – | Chat model override (default `google/gemini-2.5-flash`) |
-| `ANALYSIS_MODEL` | – | Analysis model override (default `google/gemini-2.5-pro`) |
+| `ANALYSIS_MODEL` | – | Analysis model override (default `google/gemini-2.5-flash`) |
+| `MEMWAL_SERVER_URL` | – | MemWal relayer URL (defaults to the public relayer) |
+| `MEMWAL_NAMESPACE` | – | Top-level memory namespace (default `shadowpundit`) |
 
 > Generate a session secret: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
@@ -129,34 +131,5 @@ connect wallet → GET /api/auth/nonce → wallet signs the nonce
 ```
 
 The verified wallet address *is* your account. Protected API routes are guarded server-side, and signing a message is free (it never submits a transaction).
-
----
-
-## 🧪 Testing
-
-A full step-by-step walkthrough — including the exact chat messages that trigger the Shadow to emerge — lives in **[`TESTING_GUIDE.md`](./TESTING_GUIDE.md)**.
-
-Quick auth check (no browser needed):
-```bash
-node scripts/auth-smoketest.mjs
-```
-
----
-
-## ☁️ Deployment
-
-Deploys to **Vercel** with zero config:
-
-1. Push to GitHub and import the repo into Vercel.
-2. Add the environment variables above (don't forget `SESSION_SECRET`).
-3. Deploy.
-
----
-
-## 📄 Build plan
-
-The full product spec and phased build schedule are documented in **[`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)**.
-
----
 
 *Powered by Walrus Memory 🦭*
