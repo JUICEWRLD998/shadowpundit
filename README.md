@@ -48,6 +48,37 @@ Built for the **Walrus Memory World Cup** hackathon. Every prediction, bias, and
 
 ---
 
+## 🦭 How Walrus Memory is used
+
+Walrus Memory (via [MemWal](https://www.npmjs.com/package/@mysten-incubation/memwal)) is the long-term brain of the Shadow — it's where everything the agent learns about you actually lives. Every prediction you make, every bias the analyser detects, the Shadow's evolving persona, and key conversation moments are written as natural-language memories to Walrus through the MemWal relayer (a TEE that handles encryption, embedding, and blob storage server-side). On each turn the agent **semantically recalls** the most relevant memories for what you're talking about and feeds them back into the prompt, so the Shadow argues with receipts from your own history instead of a blank slate. Memories are namespaced per Sui wallet address (`predictions::0xabc…`, `bias-profile::0xabc…`, etc.), so your data is private to you and persists across sessions and devices. The result: the agent doesn't reset between visits — it genuinely remembers, holds grudges, and gets sharper the more you use it.
+
+---
+
+## 🧠 The Memory Moment
+
+A concrete before/after of what persistent Walrus memory buys you — the same user, the same matchup, four days apart.
+
+### Day 1 — the agent has no past to hold against you
+
+> **You:** Portugal are going to walk all over Congo. I'm *confident* — Ronaldo leads them to the win, no question.
+>
+> **Shadow Pundit:** Bold call. Locking in **Portugal to beat Congo**, high confidence, Ronaldo-led. Good luck out there. 🎯
+
+The prediction is extracted and written to Walrus:
+`"User confidently predicted Portugal to beat Congo, citing Ronaldo as the deciding factor. Confidence: HIGH."`
+
+…then Congo pull off the upset. The prediction is marked **wrong** in the Arena, and that outcome is remembered too.
+
+### Day 4 — the agent recalls Day 1 and mocks you with it
+
+> **You:** Alright, Portugal vs Congo again. Easy one — Portugal win, I'm confident.
+>
+> **🎭 Shadow Pundit:** Oh, *confident* again? That's adorable. Last time you were "confident" Ronaldo would walk them through Congo — and Congo sent you home crying. You don't have a read on this match, you have a crush on a number 7. Same pick, same hubris, same blind spot. I'll take Congo's value, thanks. 🔥
+
+Behind that reply, on this turn the agent ran a semantic `recall` over your memory namespace, surfaced the Day 1 confident-Portugal-Ronaldo prediction **and** its losing result, and the Shadow weaponised it. Nothing was hard-coded — the only reason it could land that roast is that the memory was sitting in Walrus, waiting, across four days and (if you'd switched devices) across machines. **That** is the memory moment: an agent that doesn't just respond, but remembers, learns your blind spots, and uses them against you.
+
+---
+
 ## 🧰 Tech stack
 
 | Layer | Choice |
