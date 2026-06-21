@@ -56,7 +56,7 @@ Walrus Memory (via [MemWal](https://www.npmjs.com/package/@mysten-incubation/mem
 
 ## 🧠 The Memory Moment
 
-A concrete before/after of what persistent Walrus memory buys you — the same user, the same matchup, four days apart.
+A concrete before/after of what persistent Walrus memory buys you — the same user, the same blind spot, four days apart.
 
 ### Day 1 — the agent has no past to hold against you
 
@@ -71,9 +71,9 @@ The prediction is extracted and written to Walrus:
 
 ### Day 4 — the agent recalls Day 1 and mocks you with it
 
-> **You:** Alright, Portugal vs Congo again. Easy one — Portugal win, I'm confident.
+> **You:** Alright, Portugal vs Uzbekistan. Easy one — Portugal win, I'm confident.
 >
-> **🎭 Shadow Pundit:** Oh, *confident* again? That's adorable. Last time you were "confident" Ronaldo would walk them through Congo — and Congo sent you home crying. You don't have a read on this match, you have a crush on a number 7. Same pick, same hubris, same blind spot. I'll take Congo's value, thanks. 🔥
+> **🎭 Shadow Pundit:** Oh, *confident* again? That's adorable. Last time you were "confident," Ronaldo was going to walk Portugal through Congo — and Congo sent you home crying. Now it's Uzbekistan, and the same crush on a number 7 is doing your thinking for you. Same hubris, same blind spot. I'll take Uzbekistan's value, thanks. 🔥
 
 Behind that reply, on this turn the agent ran a semantic `recall` over your memory namespace, surfaced the Day 1 confident-Portugal-Ronaldo prediction **and** its losing result, and the Shadow weaponised it. Nothing was hard-coded — the only reason it could land that roast is that the memory was sitting in Walrus, waiting, across four days and (if you'd switched devices) across machines. **That** is the memory moment: an agent that doesn't just respond, but remembers, learns your blind spots, and uses them against you.
 
